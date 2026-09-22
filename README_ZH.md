@@ -1,6 +1,6 @@
 # DevFlow
 
-**版本 `0.1.0`** · 首发快照（2026-09-23）
+**版本 `1.0.0`** · 首发快照（2026-09-23）
 
 面向 **[DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)** 的**多 Agent 工作流编排插件**。
 
@@ -38,7 +38,7 @@ git clone https://github.com/BinXie-lixiangdehua/dsh-devflow.git "$env:USERPROFI
 .\install.ps1 -DryRun                 # 只打印将要做什么，不写任何文件
 .\install.ps1 -DshHome 'C:\Users\me\.dsh' -Profile 'web'
 .\install.ps1 -SkipPreset             # 不部署 preset（只装插件本体）
-.\install.ps1 -Ref 'v0.1.0'           # 安装指定 tag / 分支
+.\install.ps1 -Ref 'v1.0.0'           # 安装指定 tag / 分支
 ```
 
 ## 安装脚本到底改了什么
@@ -110,7 +110,7 @@ install.ps1/.cmd   上面那条一键安装命令
 
 ## 版本
 
-插件还在演进期，故为 `0.x`。每次发布快照都会打一个**附注标签**（`v0.1.0`、`v0.1.1`…），且 `package.json` 的 `version` 与标签一致 —— 这样 `git checkout v0.1.0` 与"锁版本安装"指的是同一份东西。
+版本遵循 semver。每次发布快照都会打一个**附注标签**（`v1.0.0`、`v1.0.1`…），且 `package.json` 的 `version` 与标签一致 —— 这样 `git checkout v1.0.0` 与"锁版本安装"指的是同一份东西。
 
 ## 许可
 
