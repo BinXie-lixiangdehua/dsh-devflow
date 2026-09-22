@@ -1,0 +1,9 @@
+node_modules/
+coverage/
+*.log
+*.tgz
+.DS_Store
+
+# 注意：`lib/` 故意”不“忽略。
+# 本仓库是**发布副本**，提交构建产物是刻意的：用户安装后无需自建，
+# `git+https://` 方式安装也能直接拿到可运行的 lib/index.js 与 lib/client.js。

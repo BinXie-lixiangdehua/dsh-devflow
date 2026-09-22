@@ -1,0 +1,6 @@
+# DevFlow preset picker metadata (display only; never loaded as code).
+# Choosing this preset means: this session's Agent is bound to DevFlow
+# Commander before publication, with its own verifiable activation state.
+name: DevFlow
+description: DevFlow Commander — trusted agent workflow orchestration preset
+order: 50

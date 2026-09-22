@@ -1,0 +1,6 @@
+# DevFlow bundle patch. M1 mounts only the empty scaffold service.
+- insert:
+    - id: devflow
+      name: '@xiaoxie-ide/dsh-devflow'
+      config:
+        stateDir: .devflow

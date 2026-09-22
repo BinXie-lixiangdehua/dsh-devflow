@@ -1,0 +1,66 @@
+# DevFlow agent preset — DevFlow Commander plus the agent-plane capability rows
+# its dispatched employees need.
+#
+# This composition never loads the @xiaoxie-ide/dsh-devflow host bundle, its
+# Remote, its client slot, or the `.devflow` store: the host controller is
+# composed exactly once by the deployment's `cordis.patch.yml` (id: devflow).
+#
+# Row 1 provides the isolated `agentPresetActivation` service the Harness
+# generic activation Hook resolves inside this preset's standing subtree;
+# `activate()` runs in the pre-publication mount/recompose window and completes
+# Commander installation before the Agent or the selection commit is published.
+#
+# Rows 2+ are the model-facing capability rows, copied minimally from the
+# official `standard` preset. Without them this preset registers only the DevFlow
+# tool family, so a dispatched child agent inherits a tool set with no file or
+# shell primitives and can only report `rejected`. `tool-fs`,
+# `tool-fs-search`, and the shell row register into the host `tools` registry and
+# provide nothing, so they need no `isolate` realm. Plan mode, compaction, and the
+# delegation/workflow groups are deliberately NOT copied: DevFlow owns task
+# orchestration on its own plane, and a second plan/compaction layer would fight
+# the Commander persona this preset activates.
+#
+# The canonical relative path on row 1 resolves inside this repository checkout;
+# the deployment registration writes an absolute-path copy of this file so the
+# Harness user preset root can load the same built module.
+- id: devflow-activation
+  name: ../../lib/host/preset-activation.js
+  isolate:
+    agentPresetActivation: true
+
+# ── shell ────────────────────────────────────────────────────────────────────
+# `shell-env` and the executors stay in the host composition; only the
+# model-facing shell tool is per-preset. Exactly one row is enabled per platform,
+# mirroring the official preset.
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── filesystem ───────────────────────────────────────────────────────────────
+# Read/write/edit plus glob/grep. The `fs` service and its sandbox policy stay on
+# the host plane.
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── background jobs ──────────────────────────────────────────────────────────
+# Only the model-facing controls; the job registry stays on the host plane.
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── interaction ──────────────────────────────────────────────────────────────
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+  config:
+    allowParallelInProgress: true
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'

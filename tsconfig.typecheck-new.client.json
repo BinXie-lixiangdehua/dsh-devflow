@@ -1,0 +1,1475 @@
+{
+  "extends": "./tsconfig.client.json",
+  "compilerOptions": {
+    "paths": {
+      "@deepseek-ai/dsh-acp": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/acp/acp/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-gateway": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/gateway/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-gateway/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/gateway/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-gateway/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/gateway/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-remotes": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/remotes/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-remotes/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/remotes/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-remotes/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/remotes/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/remote-events": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/types/remote-events.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-session-controller/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/session-controller/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-settings-controller": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/settings-controller/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-settings-controller/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/settings-controller/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-settings-controller/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/settings-controller/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-settings-controller/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/settings-controller/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-controller": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-controller/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-controller/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-controller/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-controller/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-controller/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-controller/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-controller/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-controller/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-controller/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-files": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-files/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-files/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-files/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-files/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-files/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-files/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-files/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-api-workspace-files/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/api/workspace-files/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-attachment": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/attachment/attachment/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-attachment/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/attachment/attachment/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-attachment-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/attachment/attachment-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-app-boot": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/boot/app-boot/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-cmdline": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/boot/cmdline/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-acp-app": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/acp-app/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-base": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/base/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-headless": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/headless/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-headless/startup": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/headless/lib/types/startup.d.ts"
+      ],
+      "@deepseek-ai/dsh-sdk-app": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/sdk-app/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sdk-minimal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/sdk-minimal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-app": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/web-app/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-app/startup": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/bundle/web-app/lib/types/startup.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-connection": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/connection/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-connection/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/connection/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-file-upload": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/file-upload/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-file-upload/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/file-upload/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-file-upload/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/file-upload/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-file-upload/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/file-upload/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-file-upload/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/file-upload/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-hmr": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/hmr/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-hmr/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/hmr/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-hmr/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/hmr/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-locale": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/locale/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-locale/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/locale/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-modules": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/modules/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-modules/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/modules/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-modules/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/modules/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-resources": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/resources/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-resources/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/resources/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-store": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/store/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-agent-preset": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-agent-preset/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-agent-preset/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-agent-preset/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-approval": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-approval/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-approval/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-approval/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-attachment": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-attachment/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-attachment/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-attachment/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-brand-official": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-brand-official/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-brand-official/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-brand-official/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-chat": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-chat/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-chat/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-chat/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-commands": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-commands/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-commands/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-commands/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-conversation": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-conversation/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-conversation/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-conversation/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-deliverables": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-deliverables/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-deliverables/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-deliverables/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-directory-picker-browse": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-directory-picker-browse/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-directory-picker-browse/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-directory-picker-browse/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-directory-picker-native": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-directory-picker-native/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-directory-picker-native/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-directory-picker-native/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-dockkit": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-dockkit/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-goal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-goal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-goal/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-goal/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-input-trigger": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-input-trigger/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-input-trigger/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-input-trigger/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-jobs": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-jobs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-jobs/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-jobs/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-layout": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-layout/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-layout/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-layout/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-message-feedback": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-message-feedback/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-message-feedback/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-message-feedback/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-model-selection": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-model-selection/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-model-selection/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-model-selection/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-open-in-app": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-open-in-app/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-open-in-app/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-open-in-app/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-permission-presets": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-permission-presets/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-permission-presets/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-permission-presets/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-plan": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-plan/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-plan/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-plan/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-primitives": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-primitives/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-reference": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-reference/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-reference/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-reference/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-renderer": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-renderer/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-renderer/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-renderer/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-renderer/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-renderer/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-schedule": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-schedule/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-schedule/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-schedule/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-session": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-session/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-session/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-session/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-general": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-general/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-general/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-general/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-models": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-models/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-models/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-models/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-plugin-inventory/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-plugin-inventory/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-plugins": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-plugins/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-plugins/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-settings-plugins/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-documentpreview/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-documentpreview/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-files": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-files/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-files/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-files/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-right": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-right/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar-right/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-sidebar-right/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-skill": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-skill/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-skill/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-skill/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-slots": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-slots/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-subagent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-subagent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-subagent/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-subagent/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-theme": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-theme/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-theme/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-theme/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-tool": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-tool/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-tool/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-tool/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-trajectory": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-trajectory/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-trajectory/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-trajectory/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-user-questions": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-user-questions/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-user-questions/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-user-questions/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-workflow-run": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-workflow-run/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-workflow-run/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-workflow-run/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-workspace": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-workspace/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-workspace/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/ui-workspace/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-web": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/client/web/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-code-runtime": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/code-runtime/code-runtime/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-code-runtime-worker-thread": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/code-runtime/code-runtime-worker-thread/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-code-runtime-worker-thread/worker": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/code-runtime/code-runtime-worker-thread/lib/types/worker.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-compact": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/command-compact/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction/checkpoint": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction/lib/types/checkpoint.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction-basic": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction-basic/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-compaction-tool-result-pruner": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/compaction/compaction-tool-result-pruner/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-instructions": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/agent-instructions/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-file-reference": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/file-reference/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-file-reference/grammar": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/file-reference/lib/types/grammar.d.ts"
+      ],
+      "@deepseek-ai/dsh-file-reference/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/file-reference/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-file-reference-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/file-reference-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-file-reference-local/search": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/file-reference-local/lib/types/search.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-reference": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/session-reference/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-reference/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/session-reference/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-reference/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/session-reference/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-reference/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/session-reference/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-time-context": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/time-context/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-time-context/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/time-context/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tmux-context": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/context/tmux-context/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-default-model": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent-default-model/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-loop": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent-loop/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-loop/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent-loop/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-tool-presentation": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/agent-tool-presentation/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-scope": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/scope/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-scope/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/scope/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-session": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/session/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/session/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-session/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/session/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session/surface": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/session/lib/types/surface.d.ts"
+      ],
+      "@deepseek-ai/dsh-system-prompt": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/system-prompt/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-system-prompt/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/system-prompt/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tools": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/tools/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tools/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/tools/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tools/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/tools/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-tools/presentation": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/core/tools/lib/types/presentation.d.ts"
+      ],
+      "@deepseek-ai/dsh-authorization": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/authorization/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-authorization/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/authorization/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-authorization/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/authorization/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-credentials": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/credentials/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-credentials/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/credentials/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-credentials/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/credentials/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-credentials-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/credentials/credentials-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-e2b": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/e2b/e2b/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs-e2b": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/e2b/fs-e2b/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subprocess-e2b": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/e2b/subprocess-e2b/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team-profile": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team-profile/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-agent-team-web-profile": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/agent-team-web-profile/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-client-ui-agent-team": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/client-ui-agent-team/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-client-ui-agent-team/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/client-ui-agent-team/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-code-runtime-python": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/code-runtime-python/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-inspector": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/inspector/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-inspector/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/inspector/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-tool-agent-team": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/tool-agent-team/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-webworker-packer": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/webworker-packer/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-webworker-runtime": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/webworker-runtime/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-experimental-webworker-runtime/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/experimental/webworker-runtime/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-client-runner": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-client-runner/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-client-runner/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-client-runner/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-host-runner": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-host-runner/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-host-runner/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-host-runner/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-host-runner/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-host-runner/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-cordis-host-runner/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/cordis-host-runner/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-cordis": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/tool-cordis/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-cordis": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/ui-cordis/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-cordis/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/extensions/ui-cordis/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-feedback": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/command-feedback/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-feedback/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/command-feedback/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-feedback/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/command-feedback/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-feedback/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/command-feedback/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-message-feedback": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/message-feedback/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-message-feedback/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/message-feedback/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-message-feedback/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/message-feedback/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-message-feedback/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/feedback/message-feedback/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/fs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/fs/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/fs-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs-observation-policy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/fs-observation-policy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs-sandbox": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/fs-sandbox/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-fs": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/tool-fs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-fs-search": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/tool-fs-search/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-present": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/tool-present/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-present/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/tool-present/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-str-replace-editor": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/fs/tool-str-replace-editor/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-command-goal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/command-goal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal-round-driver": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal-round-driver/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-goal-round-driver/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/goal-round-driver/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-goal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/goal/tool-goal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-repeat-tool-reminder": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/guard/repeat-tool-reminder/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-call-timeout-policy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/guard/timeout-policy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-hook-protocol": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/hooks/hook-protocol/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-hook-protocol/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/hooks/hook-protocol/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-hooks-claude-code": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/hooks/hooks-claude-code/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-hooks-codex": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/hooks/hooks-codex/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-auto": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker-auto/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-browse": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker-browse/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-native": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker-native/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-native/worker": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/directory-picker-native/lib/types/win32-dialog-worker.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-frontend-static": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/frontend-static/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-open-in-app": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/open-in-app/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-open-in-app/shared": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/open-in-app/lib/types/shared.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-plugin-inventory": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/plugin-inventory/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-plugin-inventory/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/plugin-inventory/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-plugin-inventory/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/plugin-inventory/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-plugin-inventory/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/plugin-inventory/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-webserver": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/host/webserver/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-anonymous-user-id": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/identity/anonymous-user-id/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands/brand": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/types/brand.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-commands/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/commands/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-permission-presets": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/permission-presets/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-permission-presets/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/permission-presets/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-permission-presets/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/permission-presets/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-permission-presets/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/permission-presets/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-ask-user": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/tool-ask-user/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-approval": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/user-approval/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-approval/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/user-approval/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-approval/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/user-approval/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-questions": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/user-questions/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-user-questions/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/interaction/user-questions/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-jobs": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/jobs/jobs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-jobs/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/jobs/jobs/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-jobs/brand": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/jobs/jobs/lib/types/brand.d.ts"
+      ],
+      "@deepseek-ai/dsh-jobs-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/jobs/jobs-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-jobs": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/jobs/tool-jobs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-deepseek-llm-api-extensions": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/deepseek-llm-api-extensions/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-deepseek-llm-api-extensions/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/deepseek-llm-api-extensions/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/brand": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/brand.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/message": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/message.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/assistant-stream": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/types/assistant-stream.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-deepseek": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm-deepseek/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-pi-ai": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm-pi-ai/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-retry": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm-retry/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-retry/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm-retry/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-retry/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/llm-retry/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-plugin-package-inventory-deepseek": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/plugin-package-inventory-deepseek/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-plugin-package-inventory-deepseek/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/plugin-package-inventory-deepseek/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-token-meter": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/token-meter/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-token-meter/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/llm/token-meter/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-lsp": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/lsp/lsp/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-lsp-stdio": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/lsp/lsp-stdio/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-lsp": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/lsp/tool-lsp/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-mcp-client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/mcp/mcp-client/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/plan/plan-mode/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/plan/plan-mode/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/plan/plan-mode/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/plan/plan-mode/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets/display": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/types/display.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-presets/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/agent-presets/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-persona": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/preset/persona/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-invariants": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/runtime-diagnostics/invariants/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox-policy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox-policy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox-policy/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox-policy/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox-windows-acl": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox-windows-acl/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sandbox-windows-acl/runner": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sandbox/sandbox-windows-acl/lib/types/runner.d.ts"
+      ],
+      "@deepseek-ai/dsh-schedule": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/schedule/schedule/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-schedule/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/schedule/schedule/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-schedule/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/schedule/schedule/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-sdk-client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sdk/client/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sdk-protocol": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sdk/protocol/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-sdk-jsonrpc-server": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/sdk/server/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-checkpoint-policy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-checkpoint-policy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-format": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-format/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-format-catalog": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-format-catalog/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-format-v0-to-v1": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-format-v0-to-v1/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-format-v1-to-v2": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-format-v1-to-v2/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-format-v2-to-v3": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-format-v2-to-v3/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-log-deepseek": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-log-deepseek/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-log-deepseek/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-log-deepseek/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-log-deepseek/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-log-deepseek/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-persistence": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-persistence/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-persistence-jsonl": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-persistence-jsonl/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-projection/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-projection/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection-cache": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-projection-cache/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-stats": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-stats/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-stats/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-stats/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-stats/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-stats/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-telemetry": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-telemetry/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-telemetry-otel": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-telemetry-otel/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title-all-prompts-llm": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title-all-prompts-llm/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title-first-prompt-llm": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title-first-prompt-llm/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-title-llm": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-title-llm/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-turn-outline": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-turn-outline/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-turn-outline/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-turn-outline/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-turn-outline/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session/session-turn-outline/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-log-export": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session-query/session-log-export/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-log-export/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session-query/session-log-export/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-query": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session-query/session-query/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-query-sqlite": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session-query/session-query-sqlite/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-session-query": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/session-query/tool-session-query/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-settings": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/settings/settings/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-settings/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/settings/settings/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-settings/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/settings/settings/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-settings-file": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/settings/settings-file/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-bash-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/bash-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-bash-sandbox": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/bash-sandbox/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-pwsh-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/pwsh-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-pwsh-sandbox": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/pwsh-sandbox/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-shell": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/shell/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-shell-env": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/shell-env/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-bash": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/tool-bash/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-bash-persistent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/tool-bash-persistent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-pwsh": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/tool-pwsh/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-pwsh-persistent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/shell/tool-pwsh-persistent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-skill": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/skill/skill/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-skill-badge": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/skill/skill-badge/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-skill-filesystem": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/skill/skill-filesystem/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-skill": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/skill/tool-skill/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-spill": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/spill/spill/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-spill-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/spill/spill-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-spill-policy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/spill/spill-policy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-spill-policy/notice": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/spill/spill-policy/lib/types/notice.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/storage/storage/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage-domain": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/storage/storage-domain/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage-domain/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/storage/storage-domain/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage-json": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/storage/storage-json/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-storage-sqlite": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/storage/storage-sqlite/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent/internal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/types/internal.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent/typert": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/typert.host.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent/remote": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent/lib/typert.remote-client.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-acp": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-acp/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-claude-code": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-claude-code/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-codex": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-codex/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-dsh-sdk": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-dsh-sdk/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-fork-in-process": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-fork-in-process/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-in-process-driver": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-in-process-driver/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subagent-spawn-in-process": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/subagent-spawn-in-process/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/tool-subagent/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent/model-selection-settings": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/tool-subagent/lib/types/model-selection-settings.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/tool-subagent/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent-control": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/tool-subagent-control/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent-control/list-agents": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subagent/tool-subagent-control/lib/types/list-agents.d.ts"
+      ],
+      "@deepseek-ai/dsh-subprocess": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subprocess/subprocess/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subprocess-local": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subprocess/subprocess-local/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-subprocess-local/runner": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subprocess/subprocess-local/lib/types/bin.d.ts"
+      ],
+      "@deepseek-ai/dsh-win32-process": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/subprocess/win32-process/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-terminal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/terminal/terminal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-terminal-bash": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/terminal/terminal-bash/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-terminal": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/terminal/tool-terminal/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-agent-loop-testkit": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/agent-loop-testkit/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-test-runtime": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/client-runtime/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-mock-server": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/llm-mock-server/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-llm-replay": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/llm-replay/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-loader-smoke": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/loader-smoke/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-remote-mock": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/remote-mock/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-session-snapshot": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/test-support/session-snapshot/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-todo": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/todo/tool-todo/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-todo/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/todo/tool-todo/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-todo/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/todo/tool-todo/lib/types/client.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-generator": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/generator/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-generator/tsdown": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/generator/lib/types/tsdown-plugin.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-loader": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/loader/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-protocol": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/protocol/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-protocol/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/protocol/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-registry": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/registry/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-registry/client": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/registry/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-typert-registry/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/typert/registry/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-atomic-write": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/atomic-write/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-brand": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/brand/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-chunked-list": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/chunked-list/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-util-crypto": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/crypto/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-deque": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/deque/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-home-paths": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/home-paths/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-http-proxy": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/http-proxy/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-launch-environment": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/launch-environment/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-native-command": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/native-command/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-output-retention": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/output-retention/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-package-manifest": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/package-manifest/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-util-time": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/time/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-timeout": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/timeout/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-util-values": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/values/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-util-workspace-path": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/util/workspace-path/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-web": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/tool-web/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/web/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-fetch-http": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/web-fetch-http/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-search-deepseek": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/web-search-deepseek/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-search-exa": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/web-search-exa/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-web-search-perplexity": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/web/web-search-perplexity/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-webhook": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/webhook/webhook/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-webhook/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/webhook/webhook/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-webhook/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/webhook/webhook/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-webhook-github": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/webhook/webhook-github/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-webhook-github/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/webhook/webhook-github/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-ralph": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/tool-ralph/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-workflow": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/tool-workflow/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-workflow/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/tool-workflow/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-tool-workflow/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/tool-workflow/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-workflow": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/workflow/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-workflow/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/workflow/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-workflow/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/workflow/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/dsh-workflow-worker-thread": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/workflow-worker-thread/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-workflow-worker-thread/worker": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workflow/workflow-worker-thread/lib/types/worker.d.ts"
+      ],
+      "@deepseek-ai/dsh-workspace": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workspace/workspace/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-workspace/invariant": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workspace/workspace/lib/types/invariant.d.ts"
+      ],
+      "@deepseek-ai/dsh-workspace/types": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/packages/workspace/workspace/lib/types/types.d.ts"
+      ],
+      "@deepseek-ai/cordis": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/cordis/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cosmokit": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/cosmokit/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-group": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/group/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-hmr": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/hmr/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-include": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/include/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-loader": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/loader/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-logger-console": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/logger-console/lib/types/shared.d.ts"
+      ],
+      "@deepseek-ai/schemastery": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/schemastery/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/cordis-plugin-timer": [
+        "C:/Users/xiebin/AppData/Local/Temp/dsh-wBij7z/dsh-migrate/harness-next/vendor/timer/lib/types/index.d.ts"
+      ]
+    },
+    "noEmit": true
+  }
+}
