@@ -1,5 +1,7 @@
 # DevFlow
 
+**Version `0.1.0`** · first published snapshot (2026-09-23)
+
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
 DevFlow turns a dsh session into a small delivery organisation with a visible control plane:
@@ -119,6 +121,10 @@ lib/               built bundles — committed for zero-build installs
 cordis.patch.yml   the dsh bundle patch
 install.ps1/.cmd   the one-command installer described above
 ```
+
+## Versioning
+
+`0.x` while the plugin is still moving. Every published snapshot gets an annotated tag (`v0.1.0`, `v0.1.1`, …) and the `version` field in `package.json` matches that tag, so `git checkout v0.1.0` and a pinned install both mean the same thing.
 
 ## License
 

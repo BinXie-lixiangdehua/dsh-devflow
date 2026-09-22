@@ -1,5 +1,7 @@
 # DevFlow
 
+**版本 `0.1.0`** · 首发快照（2026-09-23）
+
 面向 **[DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)** 的**多 Agent 工作流编排插件**。
 
 它把一个 dsh 会话变成一个小型交付组织，并把这个组织的过程**画出来**：
@@ -105,6 +107,10 @@ lib/               构建产物 —— 刻意提交，保证"零构建安装"
 cordis.patch.yml   dsh bundle patch
 install.ps1/.cmd   上面那条一键安装命令
 ```
+
+## 版本
+
+插件还在演进期，故为 `0.x`。每次发布快照都会打一个**附注标签**（`v0.1.0`、`v0.1.1`…），且 `package.json` 的 `version` 与标签一致 —— 这样 `git checkout v0.1.0` 与"锁版本安装"指的是同一份东西。
 
 ## 许可
 
