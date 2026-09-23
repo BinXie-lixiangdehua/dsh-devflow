@@ -204,6 +204,13 @@ describe('employee registration is restricted to an explicit caller identity', (
     expect(refused.isError).toBe(true)
     expect(JSON.stringify(refused.content)).toContain('restricted to the Commander')
     expect(await f.store.getAgent(EMPLOYEE.id)).toBeUndefined()
+    // 被拒的登记必须**什么也不留**。此前授权发生在实例落盘之后，于是每次被拒都会在 `agents/`
+    // 里留下一个不可派发的惰性实例，并写下一行声称登记成功的 journal —— 真机实测
+    // 2026-09-23 留下 3 个实例（`researcher-step16-guard` / `-redline` / `researcher-guard-live`）
+    // 与 3 行 `devflow/agent/upsert`。这条断言把"零写入"钉死。
+    expect(await f.store.getAgentInstance(EMPLOYEE.id)).toBeUndefined()
+    const journal = await f.store.listJournal()
+    expect(journal.some(row => row.type === 'devflow/agent/upsert')).toBe(false)
   })
 
   it('keeps the ordinary employee depth budget for a Commander-authorized registration', async () => {

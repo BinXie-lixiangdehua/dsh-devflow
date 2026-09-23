@@ -25,7 +25,10 @@ import { DevFlowPresetActivation, DEVFLOW_PRESET_ID } from '../src/host/preset-a
 import { CommanderMode } from '../src/host/commander-mode.ts'
 import { blockedReportFrom } from '../src/host/blocked-report.ts'
 import { recordDevFlowChange } from '../src/host/journal.ts'
-import { createDevFlowClientSnapshot } from '../src/host/client-snapshot.ts'
+import { blockedResolved, createDevFlowClientSnapshot } from '../src/host/client-snapshot.ts'
+import { TaskWorkflow } from '../src/host/workflow.ts'
+import type { BlockedReport } from '../src/host/types.ts'
+import type { DevFlowStoreState } from '../src/host/storage.ts'
 import { parseDevFlowResponse } from '../src/client/remote.ts'
 import type { DevflowController } from '../src/host/index.ts'
 import { testScopeResolver } from './support/session-scope.ts'
@@ -115,5 +118,61 @@ describe('受阻记录的真实接线', () => {
     const parsed = parseDevFlowResponse({ kind: 'snapshot', snapshot })
     if (parsed.kind !== 'snapshot') throw new Error('expected a snapshot')
     expect(parsed.snapshot.blocked).toEqual([])
+  })
+})
+
+/**
+ * 真机反馈（2026-09-24）：受阻横幅一直列着**早就做完并验收过**的受阻，盖着画布又像过期告警。
+ * 规则：只有"记录下来的事实"算解决 —— 任务已 `completed`，或同一任务上**更新的 completed execution**；
+ * 记录本身与 journal 一行不动（这是投影，不是清理）。
+ */
+describe('已解决的受阻不再投影（历史不动）', () => {
+  const block = (overrides: Record<string, unknown> = {}): BlockedReport => ({
+    blockedId: 'blocked-1', taskId: TASK_ID, agentId: 'architect', executionId: 'execution-1',
+    gapKind: 'tool', missing: 'web_search', suggestedOwner: 'boss',
+    reason: '本会话没有 web_search 工具', createdAt: NOW, ...overrides,
+  } as unknown as BlockedReport)
+  const state = (overrides: Record<string, unknown> = {}): DevFlowStoreState => ({
+    tasks: {}, executions: {}, blockedReports: {}, ...overrides,
+  } as unknown as DevFlowStoreState)
+
+  it('任务已验收完成 ⇒ 视为已解决', () => {
+    // `state.tasks` 是 taskId → 状态串。
+    expect(blockedResolved(state({ tasks: { [TASK_ID]: 'completed' } }), block())).toBe(true)
+    // 其它状态（reviewing / executing …）都还是"没做完"，照旧显示。
+    for (const status of ['created', 'planned', 'executing', 'reviewing', 'failed', 'cancelled']) {
+      expect(blockedResolved(state({ tasks: { [TASK_ID]: status } }), block())).toBe(false)
+    }
+  })
+
+  it('同一任务上有更新的 completed execution ⇒ 视为已解决；更早的不算', () => {
+    const later = { taskId: TASK_ID, status: 'completed', completedAt: '2026-09-18T03:00:00.000Z', createdAt: NOW, updatedAt: '2026-09-18T03:00:00.000Z' }
+    const earlier = { taskId: TASK_ID, status: 'completed', completedAt: '2026-09-18T01:00:00.000Z', createdAt: '2026-09-18T01:00:00.000Z', updatedAt: '2026-09-18T01:00:00.000Z' }
+    const running = { taskId: TASK_ID, status: 'running', completedAt: null, createdAt: NOW, updatedAt: NOW }
+    expect(blockedResolved(state({ executions: { a: later } }), block())).toBe(true)
+    expect(blockedResolved(state({ executions: { a: earlier } }), block())).toBe(false)
+    expect(blockedResolved(state({ executions: { a: running } }), block())).toBe(false)
+    // 别的任务完成不算数。
+    expect(blockedResolved(state({ executions: { a: { ...later, taskId: 'other-task' } } }), block())).toBe(false)
+  })
+
+  it('真 store + 真快照：任务完成后该受阻行从投影里消失，记录仍在', async () => {
+    const env = await environment()
+    const workflow = new TaskWorkflow(env.store)
+    const task = await env.store.createTask({
+      title: '受阻后又被做完', description: '受阻 → 配置修好 → 重新派发 → 交付', status: 'reviewing', assignedRole: 'planner',
+    })
+    const recorded = blockedReportFrom({
+      taskId: task.id, agentId: 'architect', executionId: 'execution-resolved', detail: '本会话没有 `web_search` 工具，无法联网检索；请 boss 在配置层放宽。', now: NOW,
+    })
+    await recordDevFlowChange(env.store, 'devflow/blocked/report', { blocked: recorded })
+
+    // 未解决 ⇒ 在横幅里。
+    expect((await createDevFlowClientSnapshot(env.controller, env.agent)).blocked).toHaveLength(1)
+
+    // 用户验收完成 ⇒ 不再显示；而记录本身仍在 state 里（历史不动）。
+    await workflow.completeTask(task.id)
+    expect((await createDevFlowClientSnapshot(env.controller, env.agent)).blocked).toHaveLength(0)
+    expect(Object.values((await env.store.loadState()).blockedReports)).toHaveLength(1)
   })
 })

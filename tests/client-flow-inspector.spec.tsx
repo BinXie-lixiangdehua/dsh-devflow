@@ -98,6 +98,9 @@ describe('canvas inspector (node detail / handoff detail / 阶段关联)', () =>
     expect(html).toContain('deepseek · deepseek-chat')
     expect(html).toContain('已交付')
     expect(html).toContain('data-inspector-edge="dispatch:assignment-a"')
+    // 总指挥不接派发 ⇒ 本任务技能行必须明说，而不是留空或误报注入。
+    expect(html).toContain('<dt>本任务技能</dt>')
+    expect(html).toContain('不适用（总指挥不接派发）')
   })
 
   it('shows the employee record with skills, and keeps 委派深度 separate from the 子代理 note', () => {
@@ -115,6 +118,11 @@ describe('canvas inspector (node detail / handoff detail / 阶段关联)', () =>
     expect(html).toContain('当前任务')
     expect(html).toContain('实现分层布局')
     expect(html).toContain('验收：默认视图 0 越界')
+    // 本轮新增：把"本次派发注入了哪些技能"和名册的"绑定技能"分两行呈现。注入是可观测事实
+    // （宿主在启动子代理前解析全部绑定技能，缺一个就中止派发），不是模型自述。
+    expect(html).toContain('<dt>绑定技能</dt>')
+    expect(html).toContain('<dt>本任务技能</dt>')
+    expect(html).toContain('repository-conventions、testing-policy（本次派发已注入 2 项）')
   })
 
   it('shows the requirement node as read-only and never as an input', () => {

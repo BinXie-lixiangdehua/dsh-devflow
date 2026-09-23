@@ -50,8 +50,13 @@ import {
  *
  * `lost` is the honest fifth state: a dispatch that claims to be in flight but has
  * no running execution behind it any more. See {@link edgeState} for the rules.
+ *
+ * `pending` is the node-side twin of the edge state `queued`: the employee holds a
+ * dispatch that was accepted but has not started. Without it the node fell through to
+ * the `workState === 'working'` fallback and read 执行中 while its own edge read
+ * 排队中 — one card contradicting itself.
  */
-export type FlowNodeState = 'idle' | 'active' | 'blocked' | 'done' | 'rework' | 'planned' | 'lost' | 'paused' | 'closed'
+export type FlowNodeState = 'idle' | 'active' | 'pending' | 'blocked' | 'done' | 'rework' | 'planned' | 'lost' | 'paused' | 'closed'
 
 /**
  * Dispatch states.
@@ -136,6 +141,15 @@ export interface FlowNode {
   readonly taskDescription: string | null
   readonly taskStateLabel: string | null
   readonly skillsLabel: string
+  /**
+   * The Skill ids injected into the CHILD's persona for this node's current dispatch.
+   *
+   * Distinct from {@link skillsLabel} (what the roster binds): injection happens at
+   * dispatch time, and it is observable evidence rather than a self-report — the host
+   * resolves every bound Skill before starting the child and ABORTS the dispatch when one
+   * source is unavailable, so a dispatch that exists at all was started WITH its Skills.
+   */
+  readonly dispatchSkillsLabel: string
   readonly capabilitiesLabel: string
   readonly delegationLabel: string
   /**
@@ -312,6 +326,7 @@ const ROLE_LABELS: Readonly<Record<string, string>> = {
 const NODE_STATE_LABELS: Readonly<Record<FlowNodeState, string>> = {
   idle: '空闲',
   active: '执行中',
+  pending: '待执行',
   blocked: '待决策',
   done: '已完成',
   rework: '返工中',
@@ -949,6 +964,21 @@ function phaseOrder(edges: readonly TaskEdge[]): ReadonlyMap<string, number> {
 }
 
 /**
+ * The one in-flight edge of one employee: 执行中 wins over 排队中.
+ *
+ * The order matters and used to be wrong. Both predicates used to be searched in one
+ * pass ("reverse, then the first that is executing OR queued"), so an employee holding
+ * an older 执行中 dispatch AND a newer 排队中 one presented the QUEUED edge: its card
+ * said 执行中 (the node reads any executing edge) while the line attached to it said
+ * 排队中 with the queued colour. An employee that is really running must show the
+ * running line; a queued dispatch is only the fallback when nothing of theirs runs.
+ */
+function pickLiveEdge(list: readonly TaskEdge[]): TaskEdge | undefined {
+  const reversed = [...list].reverse()
+  return reversed.find(edge => edge.state === 'executing') ?? reversed.find(edge => edge.state === 'queued')
+}
+
+/**
  * The one dispatch each employee's canvas keeps by default: the dispatch still in
  * flight when there is one, otherwise the newest dispatch of that employee.
  */
@@ -961,8 +991,7 @@ function pickCurrentEdges(edges: readonly TaskEdge[]): ReadonlySet<string> {
   }
   const current = new Set<string>()
   for (const list of byAgent.values()) {
-    const active = [...list].reverse().find(edge => edge.state === 'executing' || edge.state === 'queued')
-    const chosen = active ?? list.at(-1)
+    const chosen = pickLiveEdge(list) ?? list.at(-1)
     if (chosen !== undefined) current.add(chosen.edgeId)
   }
   return current
@@ -972,8 +1001,7 @@ function pickCurrentEdges(edges: readonly TaskEdge[]): ReadonlySet<string> {
 function currentDispatch(agentId: string, edges: readonly TaskEdge[]): TaskEdge | null {
   const items = edges.filter(edge => edge.targetAgentId === agentId)
   if (items.length === 0) return null
-  const active = [...items].reverse().find(edge => edge.state === 'executing' || edge.state === 'queued')
-  return active ?? items.at(-1) ?? null
+  return pickLiveEdge(items) ?? items.at(-1) ?? null
 }
 
 interface TaskEdge {
@@ -1287,6 +1315,7 @@ function requirementNode(name: string, goal: string, stage: string): Omit<FlowNo
     taskDescription: goal.trim() === '' ? '未记录需求全文' : goal,
     taskStateLabel: stage.trim() === '' ? '未记录当前阶段' : `当前阶段：${stage}`,
     skillsLabel: '只读状态节点',
+    dispatchSkillsLabel: '不适用（本节点不承载派发）',
     capabilitiesLabel: '不适用（只读）',
     delegationLabel: '委派深度 0 · 只读状态节点不参与派发',
     subagentNote: '子代理：不适用（只读状态节点）',
@@ -1319,6 +1348,7 @@ function commanderNode(agent: WorkspaceAgent | undefined, dispatchCount: number)
     taskDescription: null,
     taskStateLabel: null,
     skillsLabel: '不适用（总指挥不写代码）',
+    dispatchSkillsLabel: '不适用（总指挥不接派发）',
     capabilitiesLabel: capabilityText(agent?.agent.capabilities),
     delegationLabel: delegationText(agent?.agent.delegationDepth ?? 0),
     subagentNote: '子代理：只可由总指挥现场创建，创建后即由本面板呈现（生命周期状态尚未与面板联动）',
@@ -1354,6 +1384,7 @@ function agentNode(
     taskDescription: current?.task.description ?? null,
     taskStateLabel: current === null ? null : taskWorkStateLabel(current.taskState),
     skillsLabel: skillText(item.agent.skills),
+    dispatchSkillsLabel: dispatchSkillText(item.agent.skills, current !== null),
     capabilitiesLabel: capabilityText(item.agent.capabilities),
     delegationLabel: delegationText(item.agent.delegationDepth),
     subagentNote: item.agent.kind === 'temporary'
@@ -1375,6 +1406,9 @@ function nodeState(item: WorkspaceAgent, current: TaskEdge | null, edges: readon
   if (current !== null) {
     if (current.state === 'rework') return 'rework'
     if (current.state === 'executing') return 'active'
+    // 已派发但尚未开工 ⇒ 待执行。少了这一支，节点会掉进下面的 workState === 'working'
+    // 兜底而显示「执行中」，而它自己的连线写着「排队中」——一张卡自相矛盾。
+    if (current.state === 'queued') return 'pending'
     if (current.state === 'done') return 'done'
     if (current.state === 'lost') return 'lost'
   }
@@ -1630,6 +1664,19 @@ function modelLabel(agent: DevFlowClientAgent): string {
 function skillText(skills: readonly string[] | undefined): string {
   if (skills === undefined || skills.length === 0) return '暂未绑定'
   return skills.join('、')
+}
+
+/**
+ * What the CURRENT dispatch actually put into the child's persona.
+ *
+ * The host resolves every bound Skill and aborts the dispatch when a source is missing,
+ * so "this employee holds a dispatch" already proves the Skills went in — this wording
+ * states the injected set, never a claim about how the model used it.
+ */
+function dispatchSkillText(skills: readonly string[] | undefined, hasDispatch: boolean): string {
+  if (!hasDispatch) return '—（当前没有派发）'
+  if (skills === undefined || skills.length === 0) return '未绑定技能（本次派发未注入）'
+  return `${skills.join('、')}（本次派发已注入 ${skills.length} 项）`
 }
 
 function capabilityText(capabilities: readonly string[] | undefined): string {

@@ -94,7 +94,7 @@ const SEGMENTS: readonly { readonly key: keyof OverviewCounts; readonly label: s
 
 /** The float's own tone names for the node states it colours. */
 const MEMBER_TONE: Readonly<Record<string, string>> = {
-  idle: 'idle', active: 'run', blocked: 'wait', done: 'done', rework: 'bad', planned: 'queue', lost: 'lost', paused: 'paused', closed: 'closed',
+  idle: 'idle', active: 'run', pending: 'queue', blocked: 'wait', done: 'done', rework: 'bad', planned: 'queue', lost: 'lost', paused: 'paused', closed: 'closed',
 }
 
 const LOADING: DevFlowClientLoadState = { phase: 'loading', snapshot: null, error: null }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { blockedExpandKey } from '../src/client/activation-banner.ts'
 import type { CurrentSessionSources } from '../src/client/tool-activity.ts'
 import { DevFlowCanvas } from '../src/client/DevFlowCanvas.tsx'
 import type { DevFlowClientAuditPage, DevFlowClientSnapshot } from '../src/contract.ts'
@@ -9,14 +10,14 @@ import type { DevFlowClientAuditLoadState, DevFlowClientLoadState, DevFlowConnec
 const reactState = vi.hoisted(() => ({
   tab: 'flow' as DevFlowInspectorTab,
   // The canvas body's own state slots come first: 0 = selection, 1 = history,
-  // 2 = selection notice, 3 = inspector open, 4 = inspector tab. The flow canvas then
-  // adds 5 = transform, 6 = node positions, 7 = pinned nodes, 8 = selected edge,
-  // 9 = expanded nodes, 10 = roster expanded, 11 = roster cards, 12 = panning,
-  // 13 = history scope. Slots 4 and 10 are forced so one static render covers the
-  // inspector tab choice and the expanded roster.
+  // 2 = selection notice, 3 = inspector open, 4 = activation-banner fold, 5 = inspector tab.
+  // The flow canvas then adds 6 = transform, 7 = node positions, 8 = pinned nodes,
+  // 9 = selected edge, 10 = expanded nodes, 11 = roster expanded, 12 = roster cards,
+  // 13 = panning, 14 = history scope. Slots 5 and 11 are forced so one static render
+  // covers the inspector tab choice and the expanded roster.
   stateIndex: 0,
-  tabSlot: 4,
-  rosterSlot: 9,
+  tabSlot: 5,
+  rosterSlot: 10,
 }))
 
 vi.mock('react', async importOriginal => {
@@ -215,6 +216,30 @@ function canvas(
 
 function ready(source: DevFlowClientSnapshot = snapshot): DevFlowClientLoadState {
   return { phase: 'ready', snapshot: source, error: null }
+}
+
+/**
+ * 临时装上假的 `window.localStorage` 再渲染：node 测试环境里 `window` 本就不存在
+ * （所以默认姿态就是"没有存储"），这是唯一能把"用户显式展开过"喂进真实组件的方式。
+ */
+function withFakeWindow<T>(seed: Record<string, string>, run: () => T): T {
+  const scope = globalThis as { window?: unknown }
+  const had = Object.prototype.hasOwnProperty.call(scope, 'window')
+  const before = scope.window
+  const store = new Map(Object.entries(seed))
+  scope.window = {
+    localStorage: {
+      getItem: (key: string): string | null => store.get(key) ?? null,
+      setItem: (key: string, value: string): void => { store.set(key, value) },
+      removeItem: (key: string): void => { store.delete(key) },
+    },
+  }
+  try {
+    return run()
+  } finally {
+    if (had) scope.window = before
+    else delete scope.window
+  }
 }
 
 function edgeStates(html: string): string[] {
@@ -447,12 +472,35 @@ describe('DevFlow dispatch-flow canvas (third tab)', () => {
     const html = canvas(ready(blocked))
     expect(html).toContain('devflow-blocked-banner')
     expect(html).toContain('data-blocked-count="1"')
-    expect(html).toContain('受阻 · 需要处理')
-    expect(html).toContain('data-gap-kind="tool"')
+    // 真机反馈 2026-09-24：「横幅一直挡视野」——默认只占一行，但条数与最新一条都还在，
+    // 所以"不读聊天记录的人"依然看得见这件事。
+    expect(html).toContain('受阻 · 1 条待处理')
+    expect(html).toContain('data-blocked-folded="true"')
     expect(html).toContain('架构师')
-    // The banner is informative only.
+    // The banner carries no ACTION: the fix is a configuration fix, not a choice to click.
+    // The one button it may hold is the view control that folds the banner away.
     const banner = html.slice(html.indexOf('devflow-blocked-banner'), html.indexOf('devflow-blocked-banner') + 900)
-    expect(banner).not.toContain('<button')
+    expect(banner).toContain('data-blocked-toggle="expand"')
+    expect([...banner.matchAll(/<button/g)]).toHaveLength(1)
+    expect(banner).not.toContain('再试')
+    expect(banner).not.toContain('重试')
+    process.stdout.write(`\n[BLOCKED BANNER DOM] ${banner}\n`)
+
+    // 用户显式展开过 ⇒ 摊开明细（最多三条），唯一的按钮换成「收起」。
+    const expanded = withFakeWindow(
+      { [blockedExpandKey(blocked.blocked)]: '1' },
+      () => canvas(ready(blocked)),
+    )
+    expect(expanded).toContain('data-blocked-folded="false"')
+    expect(expanded).toContain('受阻 · 需要处理')
+    expect(expanded).toContain('data-gap-kind="tool"')
+    expect(expanded).toContain('本会话没有 web_search 工具')
+    const expandedBanner = expanded.slice(expanded.indexOf('devflow-blocked-banner'), expanded.indexOf('devflow-blocked-banner') + 900)
+    expect(expandedBanner).toContain('data-blocked-toggle="fold"')
+    expect(expandedBanner).toContain('收起')
+    expect([...expandedBanner.matchAll(/<button/g)]).toHaveLength(1)
+    process.stdout.write(`[BLOCKED BANNER DOM EXPANDED] ${expandedBanner}\n`)
+
     // A snapshot with no blocked rows renders no banner at all.
     expect(canvas(ready())).not.toContain('devflow-blocked-banner')
   })

@@ -1,6 +1,6 @@
 # DevFlow
 
-**Version `1.0.0`** · first published snapshot (2026-09-23)
+**Version `1.1.0`** · 2026-09-24
 
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
@@ -46,7 +46,7 @@ Useful switches:
 .\install.ps1 -SkipPreset
 
 # install a specific tag/branch
-.\install.ps1 -Ref 'v1.0.0'
+.\install.ps1 -Ref 'v1.1.0'
 ```
 
 ## What the installer actually changes
@@ -124,7 +124,7 @@ install.ps1/.cmd   the one-command installer described above
 
 ## Versioning
 
-Releases follow semver. Every published snapshot gets an annotated tag (`v1.0.0`, `v1.0.1`, …) and the `version` field in `package.json` matches that tag, so `git checkout v1.0.0` and a pinned install both mean the same thing.
+Releases follow semver. Every published snapshot gets an annotated tag (`v1.1.0`, `v1.1.1`, …) and the `version` field in `package.json` matches that tag, so `git checkout v1.1.0` and a pinned install both mean the same thing.
 
 ## License
 

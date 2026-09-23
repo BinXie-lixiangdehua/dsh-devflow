@@ -34,8 +34,11 @@ const IN_FLIGHT_EDGE: ReadonlySet<FlowEdgeState> = new Set<FlowEdgeState>(['exec
  * `planned` is in the set because an employee node reads `planned` when it holds a
  * dispatch that has not started, and "waiting for a dispatch that is paused" is not
  * 「待派发」 any more. The two nodes that never hold a dispatch are excluded below.
+ *
+ * `pending` is the same posture for the dispatch that was accepted but never started
+ * (the node-side twin of the edge's 排队中), so pausing must draft it too.
  */
-const IN_FLIGHT_NODE: ReadonlySet<FlowNodeState> = new Set<FlowNodeState>(['active', 'rework', 'planned'])
+const IN_FLIGHT_NODE: ReadonlySet<FlowNodeState> = new Set<FlowNodeState>(['active', 'rework', 'planned', 'pending'])
 
 /**
  * Apply the session's pause posture to one flow model.

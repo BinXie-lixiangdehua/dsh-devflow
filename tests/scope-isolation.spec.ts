@@ -285,6 +285,27 @@ describe('Scope Guard isolation', () => {
     expect(f.start).not.toHaveBeenCalled()
   })
 
+  it('refuses bounds whose path shares only a grandparent with the task text', async () => {
+    // 活机验收当场抓到的回退（2026-09-23，重启后的 PID 7576）：把"边界的每一个祖先"都当作可被解释
+    // 的位置之后，`docs/secret/overview.md` 会被任务里的 `docs\overview.md` 解释掉 —— 两边都含
+    // `docs`，于是真矛盾被放行。现在按**同源**判定（相等，或一方是另一方的分段前缀），
+    // 共同祖先 `docs` 不再能替两个不同的子路径背书。
+    const f = await fixture()
+    await f.call('devflow_set_scope', {
+      summary: '只读核对红线条目原文。',
+      inScope: ['docs/secret/overview.md 的红线条目'],
+      maxModifiedFiles: 1, maxToolSteps: 15,
+      completionCriteria: ['给出红线条目原文清单'],
+    }, f.parent)
+    const task = await f.task('核对 docs\\overview.md 的红线条目原文。', 'reviewing')
+
+    const execution = await f.call('devflow_dispatch_agent', { agentId: f.child.agentId, taskId: task.id }, f.parent)
+
+    expect(execution.isError).toBe(true)
+    expect(JSON.stringify(execution)).toContain('DEVFLOW_DISPATCH_SCOPE_CONFLICT')
+    expect(f.start).not.toHaveBeenCalled()
+  })
+
   it('accepts a bounds directory written with a trailing slash when the task names it bare', async () => {
     // The counterweight to the case above, also found by the audit: a bounds DIRECTORY
     // written in directory form (`docs/日志/`) and a task naming the same directory bare
@@ -305,6 +326,61 @@ describe('Scope Guard isolation', () => {
     expect(JSON.stringify(execution)).not.toContain('DEVFLOW_DISPATCH_SCOPE_CONFLICT')
     expect(f.start).toHaveBeenCalled()
     expect(Object.values((await f.store.loadState()).executions)).toHaveLength(1)
+  })
+
+  it('★ hands over bounds whose only "locations" are Chinese prose using slashes', async () => {
+    // 真机实测（2026-09-22，`D:\公众号agent`）：同一批 7 次误拒里有 4 次的唯一原因是中文散文把 `/`
+    // 当"或"用（`暂停/继续/每轮复制`、`成立/不成立/无法判定`），被判据当成"自成位置的路径"。
+    // 判定侧现在要求首段是 ASCII，这类 token 只能"提及"、不能"判定"，合法派发不再被拒。
+    const f = await fixture()
+    await f.call('devflow_set_scope', {
+      summary: 'Empty-state copy for the interface layer.',
+      inScope: ['src/js/ui.js 拷贝分支', '暂停/继续/每轮复制 的说明'],
+      maxModifiedFiles: 1, maxToolSteps: 15,
+      completionCriteria: ['Empty-state copy differs per filter.'],
+    }, f.parent)
+    const task = await f.task('Fix src\\js\\ui.js 拷贝分支，支持暂停/继续/每轮复制。', 'reviewing')
+
+    const execution = await f.call('devflow_dispatch_agent', { agentId: f.child.agentId, taskId: task.id }, f.parent)
+
+    expect(execution.isError).toBe(false)
+    expect(f.start).toHaveBeenCalled()
+  })
+
+  it('★ hands over bounds naming a deep path whose shorter ancestor the task names', async () => {
+    // 真机同一批误拒的第 5 次：边界写 `.npm-cache/node_modules/dist/output/logs/config`，任务只写了
+    // `.npm-cache/`。位置集合现在登记祖先链，短提及即可匹配深路径。
+    const f = await fixture()
+    await f.call('devflow_set_scope', {
+      summary: 'Repository hygiene.',
+      inScope: ['把产物写入 .npm-cache/node_modules/dist/output/logs/config'],
+      maxModifiedFiles: 2, maxToolSteps: 15,
+      completionCriteria: ['Cache directories stay ignored.'],
+    }, f.parent)
+    const task = await f.task('清理 .npm-cache/ 与 output/ 下的产物。', 'reviewing')
+
+    const execution = await f.call('devflow_dispatch_agent', { agentId: f.child.agentId, taskId: task.id }, f.parent)
+
+    expect(execution.isError).toBe(false)
+    expect(f.start).toHaveBeenCalled()
+  })
+
+  it('★ hands over bounds that join several paths with a Chinese enumeration comma', async () => {
+    // 真机同一批误拒的第 6/7 次：`server/、gzh-Skills/、docs/契约/、产品说明.md` 被当成**一个** token，
+    // 判据位置 `server/、gzh-skills/、docs/契约` 任务文本永远不可能提到。全角顿号进入排除集后被拆开。
+    const f = await fixture()
+    await f.call('devflow_set_scope', {
+      summary: 'Repository layout review.',
+      inScope: ['核对 server/、gzh-Skills/、docs/契约/ 的目录'],
+      maxModifiedFiles: 1, maxToolSteps: 15,
+      completionCriteria: ['Layout matches the ADR.'],
+    }, f.parent)
+    const task = await f.task('核对 server/ 与 docs/契约/ 与 gzh-Skills/ 的目录结构。', 'reviewing')
+
+    const execution = await f.call('devflow_dispatch_agent', { agentId: f.child.agentId, taskId: task.id }, f.parent)
+
+    expect(execution.isError).toBe(false)
+    expect(f.start).toHaveBeenCalled()
   })
 
   it('KNOWN GAP: bounds whose only location is a bare multi-segment directory are not judged', async () => {

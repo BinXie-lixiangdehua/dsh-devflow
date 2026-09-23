@@ -136,7 +136,7 @@ const EDGE_STATE_TEXT: Readonly<Record<FlowEdgeState, string>> = {
 }
 const SEMANTIC_ORDER: readonly FlowEdgeSemantic[] = ['requirement', 'dispatch', 'delivery', 'rework', 'subagent']
 const NODE_STATE_CLASS: Readonly<Record<FlowNodeState, string>> = {
-  idle: '', active: 'run', blocked: 'wait', done: 'done', rework: 'bad', planned: 'queue', lost: 'lost', paused: 'paused', closed: 'closed',
+  idle: '', active: 'run', pending: 'queue', blocked: 'wait', done: 'done', rework: 'bad', planned: 'queue', lost: 'lost', paused: 'paused', closed: 'closed',
 }
 /** What the canvas shows per relation, in words, next to the line sample. */
 const SEMANTIC_SHAPE: Readonly<Record<FlowEdgeSemantic, string>> = {
@@ -1089,6 +1089,7 @@ export function FlowInspector(props: {
         <div><dt>能力</dt><dd>{node.capabilitiesLabel}</dd></div>
         <div><dt>模型</dt><dd>{node.modelLabel === '' ? '不适用' : node.modelLabel}</dd></div>
         <div><dt>绑定技能</dt><dd>{node.skillsLabel}</dd></div>
+        <div><dt>本任务技能</dt><dd>{node.dispatchSkillsLabel}</dd></div>
         <div><dt>已交付</dt><dd>{node.deliveryCount} 次</dd></div>
         <div><dt>状态</dt><dd>{node.stateLabel}{node.taskStateLabel === null ? '' : ` · ${node.taskStateLabel}`}</dd></div>
         {node.executionLabel !== null && <div><dt>执行</dt><dd>{node.executionLabel}</dd></div>}

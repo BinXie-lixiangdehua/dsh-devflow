@@ -307,9 +307,19 @@ html[data-devflow-skin=light] .devflow-flow-action[aria-pressed=true]{color:var(
 .devflow-flow .devflow-selection-notice{border:1px solid var(--flow-run)}
 .devflow-flow .devflow-error-notice{border:1px solid var(--flow-bad)}
 /* 受阻横幅：员工如实上报「做不了」时的可见终态。用警示色 + 一眼可分的中文，
-   且**不带任何按钮** —— 它要的是修配置，不是一个可以点的选择。 */
-.devflow-flow .devflow-blocked-banner{position:absolute;left:10px;right:10px;top:10px;z-index:11;display:flex;flex-direction:column;gap:4px;margin:0;padding:7px 10px;border:1px solid var(--flow-bad);border-radius:10px;background:var(--flow-panel);font-size:11px;line-height:1.45}
+   且**不带任何"动作"按钮** —— 它要的是修配置，不是一个可以点的选择。唯一的按钮是
+   「收起／展开」这个**视图控件**。
+   ★ 位置纪律（真机反馈 2026-09-24 两轮）：它原先用 position:absolute + top/left/right，
+   而它渲染在画布容器之外 ⇒ 最近的可定位祖先在更外层，于是横幅**浮在整个面板顶部**，
+   既盖住画布内容、又盖住激活横幅自己的按钮（"两个按钮重叠"）。现在改为**正常文档流**：
+   它只占自己那一行的高度，永远不覆盖任何东西。 */
+.devflow-flow .devflow-blocked-banner{position:static;display:flex;flex-direction:column;gap:4px;margin:0 0 8px;padding:7px 10px;border:1px solid var(--flow-bad);border-radius:10px;background:var(--flow-panel);font-size:11px;line-height:1.45}
 .devflow-flow .devflow-blocked-head{color:var(--flow-bad);font-weight:600}
+.devflow-flow .devflow-blocked-headrow{display:flex;align-items:center;gap:10px}
+.devflow-flow .devflow-blocked-latest{flex:1 1 auto;min-width:0;color:var(--flow-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.devflow-flow .devflow-blocked-toggle{flex:0 0 auto;border:1px solid var(--flow-bad);border-radius:6px;background:transparent;color:var(--flow-bad);font:11px/1.4 inherit;padding:1px 8px;cursor:pointer}
+.devflow-flow .devflow-blocked-toggle:hover{background:color-mix(in srgb, var(--flow-bad) 14%, transparent)}
+.devflow-flow .devflow-blocked-banner.is-folded{gap:0;padding:4px 10px}
 .devflow-flow .devflow-blocked-row{display:block}
 .devflow-flow .devflow-blocked-why{display:block;color:var(--flow-muted);padding-left:10px}
 .devflow-flow-panel{display:flex;flex:1 1 auto;flex-direction:column;gap:0;min-height:0;overflow:hidden}

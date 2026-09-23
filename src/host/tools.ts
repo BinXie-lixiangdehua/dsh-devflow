@@ -280,26 +280,40 @@ async function resolveTaskBounds(store: DevFlowStore, task: Task): Promise<{
  * Path tokens in one text: a run of path characters holding at least one
  * separator. The text is slash-normalized before this runs, so a token is the
  * same whether it was written `src/js/ui.js` or `src\js\ui.js`.
+ *
+ * Full-width punctuation is excluded for the same reason ASCII punctuation is, and it
+ * was measured rather than guessed: in a live project (2026-09-22) the bounds prose
+ * `server/、gzh-Skills/、docs/契约/、产品说明.md` was read as ONE token, so the guard
+ * judged a "location" (`server/、gzh-skills/、docs/契约`) that no task text can ever
+ * mention. Excluding `、` splits it into pieces that each match the task text.
  */
-const PATH_TOKEN = /[^\s"'`,;()]*\/[^\s"'`,;()]*/g
+const PATH_TOKEN = /[^\s"'`,;()、，。：；！？「」『』（）《》【】…—·]*\/[^\s"'`,;()、，。：；！？「」『』（）《》【】…—·]*/g
 /** File-name tokens in one text. */
 const FILE_NAME_TOKEN = /[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:html|css|js|mjs|cjs|ts|tsx|jsx|json|md|txt|yml|yaml|py|sh|ps1)\b/gi
 
 /**
  * The normalized locations one slash-normalized path token denotes, lowercased.
  *
- * A token always denotes the directory holding it (`src/js/ui.js` ⇒ `src/js`) and
- * its own path (`docs/日志/` ⇒ `docs/日志`). Only slash-separated segments are
- * compared — the token is never resolved against the disk, so a bare relative
- * path is a location exactly like an absolute one.
+ * Two tokens sit on one LINEAGE when they are equal, or when one is a segment-wise
+ * prefix of the other — `a/b` and `a/b/c/file` are the same lineage; `docs/secret/x`
+ * and `docs/other/x` are NOT, even though both start with `docs`.
+ *
+ * This replaced an "ancestor closure" comparison, and a live run is why: registering
+ * every ancestor of a bound as its own excusable location made `docs/secret/overview.md`
+ * match a task that only mentioned `docs/overview.md` — both sets contained `docs`, so a
+ * genuine contradiction was handed over (measured 2026-09-22 on the running host, the
+ * task that the same check used to refuse). Lineage keeps the case that motivated the
+ * closure (`.npm-cache/node_modules/dist/output/logs/config` is excused by a task that
+ * names `.npm-cache/`, because one token is a prefix of the other) without letting a
+ * shared GRANDparent excuse two different children.
  */
-function locationsOf(token: string): string[] {
-  const trimmed = token.replace(/\/+$/, '')
-  const cut = trimmed.lastIndexOf('/')
-  const holder = cut <= 0 ? '' : trimmed.slice(0, cut)
-  return [holder, trimmed]
-    .filter(location => location !== '')
-    .map(location => location.toLowerCase())
+function sameLineage(left: string, right: string): boolean {
+  return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`)
+}
+
+/** One path token, slash-normalized, without a trailing separator and lowercased. */
+function pathTokenOf(token: string): string {
+  return token.replace(/\/+$/, '').toLowerCase()
 }
 
 /**
@@ -312,9 +326,19 @@ function locationsOf(token: string): string[] {
  * happens to hold a separator, and letting it into the comparison would excuse
  * a real contradiction — a shared `A/B` in both texts used to hand over bounds
  * naming `docs/secret` that the task never mentions.
+ *
+ * The FIRST SEGMENT must be ASCII as well. This is measured, not stylistic: a live
+ * project (2026-09-22, `D:\公众号agent`) lost ~50 minutes to seven refused dispatches
+ * whose only cause was Chinese prose using `/` for "or" — `暂停/继续/每轮复制`,
+ * `成立/不成立/无法判定` — which satisfied "two separators" and were therefore judged as
+ * locations. A real path in these projects starts with an ASCII segment (`docs/契约/
+ * 运行契约.md`, `web/src/…`), so the rule keeps every real location while dropping the
+ * prose. The cost is deliberate: a bound whose FIRST segment is Chinese (`日志/2026.md`)
+ * is no longer judged at all — it can only excuse, never refuse.
  */
 function namesOwnLocation(token: string): boolean {
   const trimmed = token.replace(/\/+$/, '')
+  if (!/^\/?[A-Za-z0-9_.\-]/.test(trimmed)) return false
   return token.endsWith('/')
     || (trimmed.match(/\//g)?.length ?? 0) >= 2
     || /^[A-Za-z]:\//.test(trimmed)
@@ -326,29 +350,31 @@ function fileNamesOf(text: string): Set<string> {
 }
 
 /**
- * Every distinct location a text NAMES, lowercased — the judging side.
+ * Every distinct path token a text NAMES, lowercased — the judging side.
  *
- * Both slash styles are normalized first, so `src/js/ui.js` and `src\js\ui.js`
- * yield the same locations instead of two disjoint sets: the false
- * `DEVFLOW_DISPATCH_SCOPE_CONFLICT` that refused legitimate handoffs. Prose slash
- * words are excluded here by {@link namesOwnLocation}.
+ * Both slash styles are normalized first, so `src/js/ui.js` and `src\js\ui.js` yield the
+ * same token instead of two disjoint sets: the false `DEVFLOW_DISPATCH_SCOPE_CONFLICT`
+ * that refused legitimate handoffs. Prose slash words are excluded here by
+ * {@link namesOwnLocation}.
  */
-function namedLocationsOf(text: string): Set<string> {
+function judgedTokensOf(text: string): string[] {
   const normalized = text.replace(/\\/g, '/')
   const out = new Set<string>()
   for (const token of normalized.match(PATH_TOKEN) ?? []) {
     if (!namesOwnLocation(token)) continue
-    for (const location of locationsOf(token)) out.add(location)
+    const value = pathTokenOf(token)
+    if (value !== '') out.add(value)
   }
-  return out
+  return [...out]
 }
 
 /**
- * Every distinct location a text MENTIONS, lowercased — the excusing side.
+ * Every distinct path token a text MENTIONS, lowercased — the excusing side.
  *
- * Deliberately more generous than {@link namedLocationsOf}: every slash-bearing
- * token counts, so bounds written `docs/日志/` still match a task that writes the
- * same directory bare (`docs\日志`).
+ * Deliberately more generous than {@link judgedTokensOf}: every slash-bearing token
+ * counts, so bounds written `docs/日志/` still match a task that writes the same
+ * directory bare (`docs\日志`). The comparison itself is {@link sameLineage}, NOT a
+ * closed set of ancestors — see that function for the live measurement that forced it.
  *
  * KNOWN GAP (registered for a later round, measured 2026-09-21 after the second
  * audit): this asymmetry does NOT make the location check airtight, because a
@@ -364,13 +390,14 @@ function namedLocationsOf(text: string): Set<string> {
  * `tests/scope-isolation.spec.ts` pins both halves of the gap as executable
  * evidence.
  */
-function mentionedLocationsOf(text: string): Set<string> {
+function mentionedTokensOf(text: string): string[] {
   const normalized = text.replace(/\\/g, '/')
   const out = new Set<string>()
   for (const token of normalized.match(PATH_TOKEN) ?? []) {
-    for (const location of locationsOf(token)) out.add(location)
+    const value = pathTokenOf(token)
+    if (value !== '') out.add(value)
   }
-  return out
+  return [...out]
 }
 
 /** A handoff whose bounds contradict the task they are meant to implement. */
@@ -579,10 +606,10 @@ function assertPackageScopeConsistency(task: Task, scope: ScopeGuard | undefined
   if (scope === undefined) return
   const scopeText = [scope.summary, ...scope.inScope, ...scope.completionCriteria].join('\n')
   const taskText = `${task.title}\n${task.description}`
-  const namedLocations = namedLocationsOf(scopeText)
-  if (namedLocations.size > 0) {
-    const mentionedLocations = mentionedLocationsOf(taskText)
-    if ([...namedLocations].every(location => !mentionedLocations.has(location))) {
+  const judgedTokens = judgedTokensOf(scopeText)
+  if (judgedTokens.length > 0) {
+    const mentionedTokens = mentionedTokensOf(taskText)
+    if (judgedTokens.every(named => !mentionedTokens.some(mention => sameLineage(named, mention)))) {
       throw new DispatchScopeConflict('the bounds name a location this task does not describe')
     }
   }
@@ -2018,6 +2045,13 @@ export function registerDevFlowTools(ctx: Context, services: DevFlowToolServices
     },
     execute: async (args, exec) => {
       const { store: sessionStore } = bindSession(services, exec.agent)
+      // Authorize BEFORE anything is persisted. This gate used to run only inside
+      // `registerDispatchableEmployee`, i.e. AFTER the instance write and its journal row, so a
+      // refused call still left an inert instance in `agents/` plus a `devflow/agent/upsert` row
+      // claiming a registration that never happened — measured on the live host 2026-09-23
+      // (`researcher-step16-guard` / `-redline` / `researcher-guard-live`, three leftovers from
+      // three refusals). The helper keeps its own check: it is called from other paths too.
+      authorizeAgentRegistration(isCommander, exec.agent)
       if (args.tools !== undefined && !isToolNameArray(args.tools)) {
         throw new Error('devflow: tools must be an array of tool names (strings); omit it entirely for a read-only employee')
       }

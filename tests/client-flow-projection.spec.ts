@@ -110,6 +110,47 @@ describe('dispatch-flow projection', () => {
     expect(flow.visibleAgentIds).toEqual(['backend-engineer', 'code-auditor'])
   })
 
+  it('★ shows a queued dispatch as 待执行 on the node, never 执行中 against its own 排队中 edge', () => {
+    // 真机报告（2026-09-22，`D:\公众号agent`）：员工持有一个"已接收但还没开工"的派发时，
+    // 节点写「执行中」而它自己的连线写「排队中」—— 同一张卡自相矛盾。根因是 nodeState 只认
+    // rework / executing / done / lost，`queued` 掉进了 workState === 'working' 的兜底。
+    const flow = model(snapshot({
+      tasks: [{ id: 'task-a', title: 'Queue me', description: 'Acceptance A', status: 'executing', updatedAt: '2026-09-14T05:59:00.000Z' }],
+      assignments: [{ id: 'assignment-a', taskId: 'task-a', phaseId: 'phase-a', agentId: 'backend-engineer', role: 'backend-engineer', status: 'in_progress' }],
+      executions: [{ id: 'execution-a', assignmentId: 'assignment-a', taskId: 'task-a', agentId: 'backend-engineer', status: 'pending', startedAt: '2026-09-14T05:59:00.000Z', completedAt: null }],
+    }))
+    expect(states(flow.history.edges)).toEqual(['queued'])
+    const node = flow.nodes.find(item => item.id === 'backend-engineer')
+    expect(node?.state).toBe('pending')
+    expect(node?.stateLabel).toBe('待执行')
+  })
+
+  it('★ keeps a RUNNING dispatch as the employee card when a newer dispatch of theirs is only queued', () => {
+    // 同一员工既有在跑、又有一条更新的排队派发时，旧实现「倒序找 executing 或 queued」会选中
+    // 排队那条：卡片显示执行中，挂在它上面的连线却是排队中（真机报告的第二种形状）。
+    const flow = model(snapshot({
+      tasks: [
+        { id: 'task-run', title: 'Running', description: 'Acceptance A', status: 'executing', updatedAt: '2026-09-14T05:40:00.000Z' },
+        { id: 'task-queue', title: 'Queued', description: 'Acceptance B', status: 'executing', updatedAt: '2026-09-14T05:58:00.000Z' },
+      ],
+      assignments: [
+        { id: 'assignment-run', taskId: 'task-run', phaseId: 'phase-a', agentId: 'backend-engineer', role: 'backend-engineer', status: 'in_progress' },
+        { id: 'assignment-queue', taskId: 'task-queue', phaseId: 'phase-a', agentId: 'backend-engineer', role: 'backend-engineer', status: 'in_progress' },
+      ],
+      executions: [
+        { id: 'execution-run', assignmentId: 'assignment-run', taskId: 'task-run', agentId: 'backend-engineer', status: 'running', startedAt: '2026-09-14T05:40:00.000Z', completedAt: null },
+        { id: 'execution-queue', assignmentId: 'assignment-queue', taskId: 'task-queue', agentId: 'backend-engineer', status: 'pending', startedAt: '2026-09-14T05:58:00.000Z', completedAt: null },
+      ],
+    }))
+    const node = flow.nodes.find(item => item.id === 'backend-engineer')
+    expect(node?.state).toBe('active')
+    // 卡片承载的是"在跑"的那条，默认视图保留的边也必须是在跑的那条。
+    expect(node?.taskId).toBe('task-run')
+    expect(flow.edges.filter(edge => edge.to === 'backend-engineer').map(edge => edge.state)).toEqual(['executing'])
+    // 历史视图仍如实给出两条，不隐藏排队的那条。
+    expect(states(flow.history.edges).sort()).toEqual(['executing', 'queued'])
+  })
+
   it('names the architect as 架构师 even though it shares the planner role', () => {
     // The architect sits on the `planner` role (the assigned-role enum has no
     // `architect`), so a role-only lookup labels its card 总指挥 — the same name

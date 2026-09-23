@@ -33,8 +33,13 @@ import { type WorkspaceModel } from './workspace.ts';
  *
  * `lost` is the honest fifth state: a dispatch that claims to be in flight but has
  * no running execution behind it any more. See {@link edgeState} for the rules.
+ *
+ * `pending` is the node-side twin of the edge state `queued`: the employee holds a
+ * dispatch that was accepted but has not started. Without it the node fell through to
+ * the `workState === 'working'` fallback and read 执行中 while its own edge read
+ * 排队中 — one card contradicting itself.
  */
-export type FlowNodeState = 'idle' | 'active' | 'blocked' | 'done' | 'rework' | 'planned' | 'lost' | 'paused' | 'closed';
+export type FlowNodeState = 'idle' | 'active' | 'pending' | 'blocked' | 'done' | 'rework' | 'planned' | 'lost' | 'paused' | 'closed';
 /**
  * Dispatch states.
  *
@@ -110,6 +115,15 @@ export interface FlowNode {
     readonly taskDescription: string | null;
     readonly taskStateLabel: string | null;
     readonly skillsLabel: string;
+    /**
+     * The Skill ids injected into the CHILD's persona for this node's current dispatch.
+     *
+     * Distinct from {@link skillsLabel} (what the roster binds): injection happens at
+     * dispatch time, and it is observable evidence rather than a self-report — the host
+     * resolves every bound Skill before starting the child and ABORTS the dispatch when one
+     * source is unavailable, so a dispatch that exists at all was started WITH its Skills.
+     */
+    readonly dispatchSkillsLabel: string;
     readonly capabilitiesLabel: string;
     readonly delegationLabel: string;
     /**

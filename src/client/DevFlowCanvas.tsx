@@ -11,6 +11,7 @@ import type {
   DevFlowClientSession,
 } from '../contract.ts'
 import { FlowCanvas } from './FlowCanvas.tsx'
+import { activationBannerMode, blockedBannerFolded, safeStorage, storeActivationFold, storeBlockedFold } from './activation-banner.ts'
 import type { DevFlowClientBlocked } from '../contract.ts'
 import type {
   DevFlowConnectionState,
@@ -124,6 +125,13 @@ export function DevFlowCanvas(props: Props) {
   const [history, setHistory] = useState<readonly WorkspaceSelection[]>([])
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null)
   const [inspectorOpen, setInspectorOpen] = useState(false)
+  /**
+   * Fold choices for THIS mount, keyed per banner ('activation' / 'blocked'); an absent
+   * entry means "follow what storage remembers". ONE map rather than one state per banner
+   * on purpose: the canvas' state slots are pinned by the copy tests' `useState` mock, so
+   * every extra hook shifts every later slot.
+   */
+  const [foldOverrides, setFoldOverrides] = useState<Record<string, boolean>>({})
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>(() => getInspectorTab())
   const inspectorRegionId = useId()
   const changeInspectorTab = (tab: InspectorTab) => {
@@ -208,6 +216,27 @@ export function DevFlowCanvas(props: Props) {
   /** Blocked dispatches, newest first; empty for snapshots that predate them. */
   const blockedRows: readonly DevFlowClientBlocked[] = snapshot.blocked ?? []
   const verdict = failure === null ? null : activationFailureVerdict(failure, snapshot.session.activation)
+  /*
+   * Fold posture: storage remembers it per refusal, and the button overrides it for this
+   * mount. A standing refusal is never foldable, so the two facts cannot disagree.
+   */
+  const storage = safeStorage()
+  const bannerMode = activationBannerMode(failure, snapshot.session.activation, storage)
+  const bannerFolded = foldOverrides.activation ?? bannerMode.folded
+  const setFolded = (folded: boolean): void => {
+    if (failure !== null) storeActivationFold(storage, failure, folded)
+    setFoldOverrides(current => ({ ...current, activation: folded }))
+  }
+  /*
+   * The 受阻 banner sits directly above the flow the user came to read, so it starts folded —
+   * to ONE line that still carries the count and the latest report — and a new blocked report
+   * is a different key, so it opens expanded again.
+   */
+  const blockedFolded = foldOverrides.blocked ?? blockedBannerFolded(blockedRows, storage)
+  const setBlockedFolded = (folded: boolean): void => {
+    storeBlockedFold(storage, blockedRows, folded)
+    setFoldOverrides(current => ({ ...current, blocked: folded }))
+  }
 
   return <main className={'devflow-canvas devflow-flow'} data-phase={state.phase} data-preset={snapshot.session.presetId ?? 'none'} data-devflow-panel="true" data-activation-failure={failure?.code ?? 'none'}>
     {failure !== null && verdict !== null && (
@@ -221,10 +250,30 @@ export function DevFlowCanvas(props: Props) {
        * and the reason sentence rides the headline itself while the refusal
        * stands, so it is stated once rather than twice.
        */
-      <div className={'devflow-activation-failure'} role="status" data-activation-code={failure.code} data-activation-phase={failure.phase} data-activation-attempts={String(failure.attempts)} data-activation-recovered={String(snapshot.session.activation === 'bound')}>
-        <span className={'devflow-activation-failure-head'}>{verdict.headline}</span>
-        <span className={'devflow-activation-failure-code'} title={`内部编码：${failure.code}`}>内部编码 〈{failure.code}〉</span>
-        <span className={'devflow-activation-failure-meta'}>{`${verdict.phase} · ${verdict.meta}`}</span>
+      <div className={`devflow-activation-failure${bannerFolded ? ' is-folded' : ''}`} role="status" data-activation-code={failure.code} data-activation-phase={failure.phase} data-activation-attempts={String(failure.attempts)} data-activation-recovered={String(snapshot.session.activation === 'bound')} data-activation-folded={String(bannerFolded)}>
+        {bannerFolded
+          ? /* The rows are spans, not divs: a nested div made the banner a two-level tree, which
+               truncated the panel's own "first </div>" extraction used by the copy tests. */
+          <span className={'devflow-activation-failure-one'}>
+            <span className={'devflow-activation-failure-head'}>{verdict.headline}</span>
+            <span className={'devflow-activation-failure-code'} title={`内部编码：${failure.code}`}>〈{failure.code}〉</span>
+            <button type="button" className={'devflow-activation-failure-toggle'} data-activation-toggle="expand" onClick={() => { setFolded(false) }}>展开</button>
+          </span>
+          : <>
+            {/*
+              The fold control rides the HEADLINE row instead of a third line: live feedback
+              (2026-09-24) was "看不到收起" — a small underlined link at the bottom of a
+              three-line block is easy to miss, and this banner is exactly what the user
+              wants out of the way. Only a refusal the Host recovered from is foldable: a
+              standing refusal is a live problem and must not be tucked away.
+            */}
+            <span className={'devflow-activation-failure-head-row'}>
+              <span className={'devflow-activation-failure-head'}>{verdict.headline}</span>
+              {bannerMode.collapsible && <button type="button" className={'devflow-activation-failure-toggle'} data-activation-toggle="fold" onClick={() => { setFolded(true) }}>收起横幅</button>}
+            </span>
+            <span className={'devflow-activation-failure-code'} title={`内部编码：${failure.code}`}>内部编码 〈{failure.code}〉</span>
+            <span className={'devflow-activation-failure-meta'}>{`${verdict.phase} · ${verdict.meta}`}</span>
+          </>}
       </div>
     )}
     {state.phase === 'error' && <div className={'devflow-error-notice'} role="alert" data-error-code={state.error.code}><span>{state.error.code === 'scope-unavailable'
@@ -235,14 +284,33 @@ export function DevFlowCanvas(props: Props) {
       The 受阻 banner. An employee that reported it could not do the work must be
       visible WITHOUT opening the conversation: a user who does not read chat
       cannot be expected to discover a blocker buried in a message. It carries no
-      action on purpose — the fix is a configuration fix, not a choice to click.
-    */}
-    {blockedRows.length > 0 && <div className={'devflow-blocked-banner'} role="status" data-blocked-count={String(blockedRows.length)}>
-      <span className={'devflow-blocked-head'}>受阻 · 需要处理</span>
-      {blockedRows.slice(0, 3).map(row => <span className={'devflow-blocked-row'} key={row.id} data-gap-kind={row.gapKind} data-task-id={row.taskId}>
-        {row.headline}
-        <span className={'devflow-blocked-why'}>{row.reason.text}</span>
-      </span>)}
+      ACTION on purpose — the fix is a configuration fix, not a choice to click — so the
+      only button it may hold is the view control that folds the banner away. It renders
+      here, in the panel's normal flow, and NOT absolutely positioned: the earlier
+      `absolute` version was anchored outside the canvas container, so it floated over the
+      whole panel top and over its own toggle (live feedback, 2026-09-24). */}
+    {blockedRows.length > 0 && <div className={`devflow-blocked-banner${blockedFolded ? ' is-folded' : ''}`} role="status" data-blocked-count={String(blockedRows.length)} data-blocked-folded={String(blockedFolded)}>
+      {blockedFolded
+        ? <span className={'devflow-blocked-headrow'}>
+          {/*
+            The toggle sits NEXT TO the label, not at the far right: the row is a single
+            ellipsised line, so a control parked at the right edge would ride on top of the
+            headline as it truncates (live feedback 2026-09-24: "两个按钮重叠").
+          */}
+          <span className={'devflow-blocked-head'}>受阻 · {blockedRows.length} 条待处理</span>
+          <button type="button" className={'devflow-blocked-toggle'} data-blocked-toggle="expand" onClick={() => { setBlockedFolded(false) }}>展开</button>
+          <span className={'devflow-blocked-latest'}>{blockedRows[0]?.headline}</span>
+        </span>
+        : <>
+          <span className={'devflow-blocked-headrow'}>
+            <span className={'devflow-blocked-head'}>受阻 · 需要处理</span>
+            <button type="button" className={'devflow-blocked-toggle'} data-blocked-toggle="fold" onClick={() => { setBlockedFolded(true) }}>收起</button>
+          </span>
+          {blockedRows.slice(0, 3).map(row => <span className={'devflow-blocked-row'} key={row.id} data-gap-kind={row.gapKind} data-task-id={row.taskId}>
+            {row.headline}
+            <span className={'devflow-blocked-why'}>{row.reason.text}</span>
+          </span>)}
+        </>}
     </div>}
     <FlowCanvas
       model={model}
