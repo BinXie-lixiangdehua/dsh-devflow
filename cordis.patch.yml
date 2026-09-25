@@ -1,6 +1,70 @@
-# DevFlow bundle patch. M1 mounts only the empty scaffold service.
+# DevFlow bundle patch — TWO preset forms live here on purpose.
+#
+# ── ① 宿主控制器（两版通用，未改）────────────────────────────────────────────
+# dsh 0.1.5 与 0.1.7 都按 `dsh.bundle.patch` 加载本文件；该行只挂载 DevFlow 宿主
+# bundle 本身（`devflow` 服务、Remote、客户端 slot、`.devflow` store）。
 - insert:
     - id: devflow
       name: '@xiaoxie-ide/dsh-devflow'
       config:
         stateDir: .devflow
+
+# ── ② 预设：新形态（0.1.7-rc.1 认，0.1.5 认不出但**不致命**）──────────────────
+# 0.1.7 起 agent preset 由「声明行」声明：一个 `@deepseek-ai/dsh-agent-preset`
+# 插件行，`config.plugins` 就是该预设的插件清单。旧版的目录式预设
+# （`$DSH_HOME/.agent-presets/devflow/`）在新版**没有任何读取方**，因此必须同时
+# 具备这一份声明，预设才会出现在新版选择列表里。
+#
+# 为什么可以和旧形态并存：0.1.5 解析不到 `@deepseek-ai/dsh-agent-preset` 这个
+# 包名时，只会把**该预设**记为 broken（`logger.warn` + 名册诊断），不会让宿主
+# 启动失败；而目录式那份仍然照旧被 0.1.5 读取。两版各取所需，互不干扰。
+#
+# ⚠️ 下面 `name:` 里的路径指向**预设激活模块**，由 `install.ps1` 在安装时改写为
+#    真实安装目录的绝对 `file://` URL + `?rev=<sha>`（与旧形态激活行的改写同一
+#    套逻辑）。模板里保留相对写法，保证源码树自身仍可读、可测。
+# ⚠️ 本行**出厂即 `disabled: true`**，这是双版本兼容的关键，不是遗漏：
+#    0.1.7 的 preset 注册表能容忍解析不到的声明（只记 broken），但 **0.1.5 的加载器
+#    会硬失败**：
+#      `dsh: plugin tree failed to load: failed to import loader entry preset-devflow
+#       (@deepseek-ai/dsh-agent-preset): Cannot find package ...`
+#    而 0.1.5 自己的审计写得很清楚：「**Disabled entries are the only valid**」未解析项
+#    （`packages/boot/app-boot/src/index.ts:683`）。⇒ 只有**默认禁用**，两版才能共存。
+#    安装器 `install.ps1` 在装到 dsh >= 0.1.7 时才会把它改为 `disabled: false`
+#    并写入绝对 file:// URL；装到 0.1.5 则原样保持禁用（只用旧形态目录式预设）。
+- insert:
+    - id: preset-devflow
+      name: '@deepseek-ai/dsh-agent-preset'
+      disabled: true
+      config:
+        id: devflow
+        name: DevFlow
+        description: DevFlow Commander — trusted agent workflow orchestration preset
+        order: 50
+        plugins:
+          # 与旧形态 `agent.cordis.yml` 第 1 行逐字对应（含 `isolate` realm）：
+          # 该行提供的 `agentPresetActivation` 是隔离服务，不带 realm 会被新版
+          # 注册表的泄漏审计判为 “Preset services require isolate realms”。
+          - id: devflow-activation
+            name: 'file:///C:/Users/xiebin/.dsh/local-plugins/dsh-devflow/lib/host/preset-activation.js?rev=source'
+            isolate:
+              agentPresetActivation: true
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'

@@ -11,6 +11,7 @@ import { TaskWorkflow } from './workflow.ts';
 import { AgentWorkflow } from './workflow-agent.ts';
 import { CommanderMode } from './commander-mode.ts';
 import { DevFlowPresetActivation, type DevFlowBoundReport } from './preset-activation.ts';
+import { type DevFlowSessionActivationMode } from './activation-session-hook.ts';
 import { DevFlowChangeBus } from './change-bus.ts';
 declare module '@deepseek-ai/cordis' {
     interface Context {
@@ -23,6 +24,17 @@ export interface DevFlowConfig {
     devflowDir?: string;
     /** Bundle-facing alias for {@link devflowDir}. */
     stateDir?: string;
+    /**
+     * Who runs the per-Agent preset activation.
+     *
+     * `auto` (the default) asks the loaded Harness whether the per-Agent
+     * activation contract is still present: while it is (`0.1.5`), the Harness
+     * drives `activate()` through the preset row and the host **yields**; once it
+     * is gone (`0.1.7+`) the host drives it from `agent/created`. `host` and
+     * `preset-row` pin the choice for a deployment that needs to recover without
+     * waiting for a release.
+     */
+    sessionActivation?: DevFlowSessionActivationMode;
 }
 /**
  * Validate deployment-owned config. Unknown keys fail at load rather than
@@ -32,6 +44,7 @@ export interface DevFlowConfig {
  */
 export declare function resolveConfig(config: DevFlowConfig): {
     devflowDir: string;
+    sessionActivation: DevFlowSessionActivationMode;
 };
 /**
  * DevFlow orchestration service: owns project context, the task lifecycle,

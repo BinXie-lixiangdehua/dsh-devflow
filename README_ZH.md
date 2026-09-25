@@ -1,6 +1,6 @@
 # DevFlow
 
-**版本 `1.1.0`** · 2026-09-24
+**版本 `1.2.0`** · 2026-09-25
 
 面向 **[DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)** 的**多 Agent 工作流编排插件**。
 
@@ -38,17 +38,22 @@ git clone https://github.com/BinXie-lixiangdehua/dsh-devflow.git "$env:USERPROFI
 .\install.ps1 -DryRun                 # 只打印将要做什么，不写任何文件
 .\install.ps1 -DshHome 'C:\Users\me\.dsh' -Profile 'web'
 .\install.ps1 -SkipPreset             # 不部署 preset（只装插件本体）
-.\install.ps1 -Ref 'v1.1.0'           # 安装指定 tag / 分支
+.\install.ps1 -Ref 'v1.2.0'           # 安装指定 tag / 分支
 ```
 
 ## 安装脚本到底改了什么
 
-**只动四处**，且每个被改写的文件都会先备份：
+**只动五处**，且每个被改写的文件都会先备份：
 
 1. **落盘**：克隆（或复制）到 `~/.dsh/local-plugins/dsh-devflow`（默认）。
-2. **注册 profile bundle**：在 `~/.dsh/profiles/<profile>/package.json` 里加 `"@xiaoxie-ide/dsh-devflow": "link:<安装目录>"`，并把包名加进 `dsh.profile.bundles`。原文件备份为 `package.json.bak-devflow-<时间戳>`。
-3. **建立 link**：在 profile 里跑一次 `pnpm install`，让 `link:` 符号链接真正生效。
-4. **部署 agent preset**：把 `presets/devflow/{agent.cordis.yml, preset.yml}` 拷到 `~/.dsh/.agent-presets/devflow/`，并把第 1 行的激活路径从"相对检出路径"改写为绝对 `file:///.../lib/host/preset-activation.js?rev=<sha>`。
+2. **装插件自身依赖**：对**插件安装目录**跑一次 `pnpm install`。`lib/index.js` 是 ESM，`@deepseek-ai/*` 全是 peerDependency —— 只装 **profile** 的话它们解析不到，宿主导入插件就会失败（`ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/cordis'`），而旧版宿主只打印一行 `failed to import`，**不指出原因**。本步**早于**改写 profile：装坏了就在这里响亮失败，不留下一个"已被改过、插件却不可用"的 profile。`-SkipPluginDeps` 可显式跳过。
+3. **注册 profile bundle**：在 `~/.dsh/profiles/<profile>/package.json` 里加 `"@xiaoxie-ide/dsh-devflow": "link:<安装目录>"`，并把包名加进 `dsh.profile.bundles`。原文件备份为 `package.json.bak-devflow-<时间戳>`。
+4. **建立 link**：在 profile 里跑一次 `pnpm install`，让 `link:` 符号链接真正生效。
+5. **部署 agent preset（双形态，两代 dsh 各读一种）**：
+   - **旧形态（dsh `0.1.5`）**：把 `presets/devflow/{agent.cordis.yml, preset.yml}` 拷到 `~/.dsh/.agent-presets/devflow/`，并把第 1 行的激活路径从"相对检出路径"改写为绝对 `file:///.../lib/host/preset-activation.js?rev=<sha>`；
+   - **新形态（dsh `0.1.7+`）**：把本插件自带 `cordis.patch.yml` 里 `preset-devflow` **声明行**的路径**幂等改写**为同一个绝对 URL。`0.1.7` 起**完全不读** `~/.dsh/.agent-presets`；而 `0.1.5` 遇到解析不到的声明包只会把该预设记为 broken，**不会让宿主启动失败** —— 所以同一份产物能同时服务两代。
+
+   `-DryRun` **不写任何文件**（只报告将会改动哪一个）。
 
 然后**重启 dsh**，开会话，选 **DevFlow** preset —— 安装就完成了。
 

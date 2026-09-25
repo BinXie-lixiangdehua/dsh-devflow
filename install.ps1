@@ -7,7 +7,8 @@
     1) 插件落盘            （默认 ~/.dsh/local-plugins/dsh-devflow）
     2) profile 注册 bundle （~/.dsh/profiles/<profile>/package.json）
     3) pnpm install        （让 link: 符号链接真正生效）
-    4) 部署 agent preset   （~/.dsh/.agent-presets/devflow/，激活行改写为绝对 file:// URL）
+    4) 装插件自身依赖      （插件安装目录内 pnpm install —— 缺这一步插件导入即失败）
+    5) 部署 agent preset   （旧形态 ~/.dsh/.agent-presets/devflow/ + 新形态声明行改写）
 
 .EXAMPLE
   .\install.ps1 -DryRun
@@ -39,8 +40,15 @@ param(
   [switch]$SkipPreset,
   # 跳过 profile 里的 pnpm install
   [switch]$SkipPnpm,
+  # 跳过插件自身依赖安装（插件安装目录内的 pnpm install）
+  [switch]$SkipPluginDeps,
   # 只打印动作，不写文件
-  [switch]$DryRun
+  [switch]$DryRun,
+  # 预设声明形态：auto（按目标 dsh 版本判定）/ on（强制启用）/ off（强制不启用）
+  [ValidateSet('auto','on','off')]
+  [string]$PresetDeclaration = 'auto',
+  # 目标 dsh 版本（留空则自动探测；探不到时用 `-PresetDeclaration on/off` 兜底）
+  [string]$DshVersion = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,6 +68,103 @@ function ToFileUrl([string]$WinPath) {
   return 'file:///' + $p
 }
 function Test-Git { return [bool](Get-Command git -ErrorAction SilentlyContinue) }
+
+<#
+  插件自身依赖是否已就位。
+
+  DevFlow 的 lib/index.js 是 ESM，`@deepseek-ai/*` 全部是 peerDependency，必须能从
+  插件安装目录解析；profile 的 pnpm install **不会**把 peer 装进插件目录。缺这一步
+  的后果是宿主启动时报 `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/cordis'`
+  —— 且旧版只打印一行 “failed to import”，不指出原因。
+#>
+function Test-PluginDeps([string]$Dir) {
+  $probe = Join-Path $Dir 'node_modules\@deepseek-ai\cordis\package.json'
+  return (Test-Path -LiteralPath $probe)
+}
+# 比较两个 dsh 版本号（形如 0.1.7-rc.1 / 0.1.5-rc.2-140-g26091bec18）。
+# 只比较主.次.补丁：rc 与否、领先多少提交都不影响「是否 >= 0.1.7」这个判断，
+# 因为实测要分的两边是 0.1.5 与 0.1.7 —— 不会踩在边界上。
+function Test-DshAtLeast([string]$Version, [int]$Major, [int]$Minor, [int]$Patch) {
+  $m = [regex]::Match($Version, '(\d+)\.(\d+)\.(\d+)')
+  if (-not $m.Success) { return $false }
+  $v = @([int]$m.Groups[1].Value, [int]$m.Groups[2].Value, [int]$m.Groups[3].Value)
+  $want = @($Major, $Minor, $Patch)
+  for ($i = 0; $i -lt 3; $i++) {
+    if ($v[$i] -gt $want[$i]) { return $true }
+    if ($v[$i] -lt $want[$i]) { return $false }
+  }
+  return $true
+}
+
+# 目标 dsh 的版本号。宿主不一定以包依赖形式出现（本机就是从源码检出直接跑的
+# node --import tsx/esm apps/cli/src/bin.ts），所以这里给一串候选探测：
+# 一、-DshVersion 显式给出；
+# 二、从 profile 目录向上找 node_modules 里的 @deepseek-ai/dsh；
+# 三、宿主源码/构建检出的根 package.json（从 profile 向上找 apps/cli/package.json，
+#     它的上一级就是根；本机两个宿主都在 apps/cli/package.json 里带版本）。
+# 都读不到就返回空串，调用方按「不认声明」处理并提示 -PresetDeclaration。
+function Get-DshVersion([string]$ProfileDirectory, [string]$Explicit) {
+  if (-not [string]::IsNullOrWhiteSpace($Explicit)) { return $Explicit }
+  $dir = $ProfileDirectory
+  for ($i = 0; $i -lt 8; $i++) {
+    if ([string]::IsNullOrEmpty($dir)) { break }
+    $candidate = Join-Path $dir 'node_modules\@deepseek-ai\dsh\package.json'
+    if (Test-Path -LiteralPath $candidate) {
+      try { return [string]((ReadText $candidate) | ConvertFrom-Json).version } catch { }
+    }
+    $cli = Join-Path $dir 'apps\cli\package.json'
+    if (Test-Path -LiteralPath $cli) {
+      try { return [string]((ReadText $cli) | ConvertFrom-Json).version } catch { }
+    }
+    $dir = Split-Path -Parent $dir
+  }
+  return ''
+}
+
+# 是否启用「新形态」预设声明（dsh >= 0.1.7 才有 @deepseek-ai/dsh-agent-preset）。
+# 判据是**版本号**，不是「包在不在」：0.1.5 的 profile 里也会出现 @deepseek-ai/*
+# （peer 解析所致），用包存在与否判会误判。
+function Test-DeclarationSupported([string]$Version) {
+  if ([string]::IsNullOrWhiteSpace($Version)) { return $false }
+  return (Test-DshAtLeast $Version 0 1 7)
+}
+# 把 - id: preset-devflow 这条声明行自己的 disabled: 改成 false。
+# 逐行扫描：只在该条目的范围内改，不碰别的行（同一个 patch 文件里还有宿主控制器行）。
+function Enable-PresetDeclaration([string]$Text) {
+  $lines = $Text -split "
+"
+  $inBlock = $false
+  $blockIndent = 0
+  $touched = $false
+  for ($i = 0; $i -lt $lines.Length; $i++) {
+    $line = $lines[$i]
+    $indent = $line.Length - $line.TrimStart().Length
+    if ($line -match '^\s*- id:\s*preset-devflow\s*$') {
+      $inBlock = $true
+      $blockIndent = $indent
+      continue
+    }
+    if ($inBlock) {
+      # 下一条同级或更浅的条目 ⇒ 本块结束
+      if ($line.Trim() -ne '' -and $indent -le $blockIndent) { $inBlock = $false; continue }
+      if ($line -match '^(\s*disabled:\s*)true\s*$') {
+        $lines[$i] = $Matches[1] + 'false'
+        $touched = $true
+        $inBlock = $false
+      }
+    }
+  }
+  $out = $lines -join "
+"
+  # 没找到 disabled 行就补在 id 行之后（保持缩进），保证语义确定。
+  if (-not $touched) {
+    $out = [System.Text.RegularExpressions.Regex]::Replace($out,
+      "(?m)^(\s*)- id: preset-devflow\s*$",
+      "$0
+$1  disabled: false")
+  }
+  return $out
+}
 
 # ── 0. 解析参数 ───────────────────────────────────────────────────────────────
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -95,7 +200,7 @@ if (-not (Test-Path -LiteralPath $ProfilePkg)) {
 }
 
 # ── 1. 插件落盘 ───────────────────────────────────────────────────────────────
-Step '1/4 插件落盘'
+Step '1/5 插件落盘'
 if ($SourceIsDir -and $SourceIsPlugin) {
   $same = ([System.IO.Path]::GetFullPath($Source)).TrimEnd('\') -ieq ([System.IO.Path]::GetFullPath($InstallDir)).TrimEnd('\')
   if ($same) {
@@ -137,8 +242,37 @@ if (-not $DryRun) {
   Say '  ✅ lib/index.js 与 lib/client.js 都在（无需构建）' 'Green'
 }
 
+
+# ── 2. 装插件自身依赖 ─────────────────────────────────────────────────────────
+# 必须在第 2 步改 profile **之前**完成：缺依赖属于“这次安装根本不能用”，
+# 宁可在这里响亮地失败，也不要先把 profile 改坏再让宿主静默起不来。
+Step '2/5 装插件自身依赖'
+if ($SkipPluginDeps) {
+  Say '  已按 -SkipPluginDeps 跳过（你需要自行在插件安装目录执行 pnpm install）' 'Yellow'
+} elseif (Test-PluginDeps $InstallDir) {
+  Say "  ✅ 依赖已就位（$InstallDir\node_modules）" 'Green'
+} else {
+  $pnpm0 = Get-Command pnpm -ErrorAction SilentlyContinue
+  if ($null -eq $pnpm0) {
+    throw "插件自身依赖未安装，且本机找不到 pnpm。请先执行：pnpm install --dir `"$InstallDir`" —— 否则宿主会以 ERR_MODULE_NOT_FOUND 启动失败（找不到包 '@deepseek-ai/cordis'）。"
+  }
+  Say "  pnpm install --dir $InstallDir"
+  if ($DryRun) {
+    Say '  （DryRun：不执行）' 'Yellow'
+  } else {
+    & pnpm install --dir $InstallDir
+    if ($LASTEXITCODE -ne 0) {
+      throw "插件自身依赖安装失败（pnpm install 退出码 $LASTEXITCODE）。请手动重跑：pnpm install --dir `"$InstallDir`" —— 缺依赖会让宿主以 ERR_MODULE_NOT_FOUND 启动失败。"
+    }
+    if (-not (Test-PluginDeps $InstallDir)) {
+      throw "pnpm install 成功但依赖仍未就位（缺 node_modules\@deepseek-ai\cordis）。请检查插件安装目录：$InstallDir"
+    }
+    Say '  ✅ 插件依赖已安装' 'Green'
+  }
+}
+
 # ── 2. profile 注册 bundle ────────────────────────────────────────────────────
-Step '2/4 注册 profile bundle'
+Step '3/5 注册 profile bundle'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = "$ProfilePkg.bak-devflow-$stamp"
 Say "  备份：$backup"
@@ -159,7 +293,7 @@ if (-not $DryRun) {
 }
 
 # ── 3. pnpm install ───────────────────────────────────────────────────────────
-Step '3/4 建立 link（pnpm install）'
+Step '4/5 建立 link（profile 的 pnpm install）'
 if ($SkipPnpm) {
   Say '  已按 -SkipPnpm 跳过（你需要自行在 profile 目录执行 pnpm install）' 'Yellow'
 } else {
@@ -176,8 +310,8 @@ if ($SkipPnpm) {
   }
 }
 
-# ── 4. 部署 preset ────────────────────────────────────────────────────────────
-Step '4/4 部署 agent preset'
+# ── 5. 部署 preset ────────────────────────────────────────────────────────────
+Step '5/5 部署 agent preset'
 if ($SkipPreset) {
   Say '  已按 -SkipPreset 跳过' 'Yellow'
 } else {
@@ -219,6 +353,46 @@ if ($SkipPreset) {
       Say "  ✅ $f  ->  $to"
     }
     Say "  激活行指向：$url" 'Green'
+
+    # ── 新形态（dsh 0.1.7+）：启用插件自带 cordis.patch.yml 里的预设声明行 ──────
+    # 该文件是本插件的 bundle patch（`dsh.bundle.patch` 指向它）。声明行**出厂即
+    # `disabled: true`**：0.1.5 的加载器会**硬失败**在解析不到的 entry 上
+    #   `dsh: plugin tree failed to load: failed to import loader entry preset-devflow
+    #    (@deepseek-ai/dsh-agent-preset): Cannot find package ...`
+    # 而它自己的审计明确写着「Disabled entries are the only valid」未解析项
+    # （`packages/boot/app-boot/src/index.ts:683`）⇒ 只有**禁用**的行才能两版共存。
+    # 因此：≥0.1.7 才把它改成 enabled 并写入绝对 URL；0.1.5 保持禁用。
+    $dshVer = Get-DshVersion $ProfileDir $DshVersion
+    $enableDeclaration = switch ($PresetDeclaration) {
+      'on' { $true }
+      'off' { $false }
+      default { Test-DeclarationSupported $dshVer }
+    }
+    Say ("  目标 dsh 版本 : " + $(if ([string]::IsNullOrWhiteSpace($dshVer)) { '（读不到）' } else { $dshVer }))
+    if ($enableDeclaration) {
+      $patchRead = if ($DryRun) { Join-Path $Source 'cordis.patch.yml' } else { Join-Path $InstallDir 'cordis.patch.yml' }
+      $patchWrite = Join-Path $InstallDir 'cordis.patch.yml'
+      if (-not (Test-Path -LiteralPath $patchRead)) {
+        Say "  ⚠️ 找不到 bundle patch（$patchRead），新形态预设声明未启用" 'Yellow'
+      } else {
+        $pText = ReadText $patchRead
+        $pRe = "(?m)^(\s*)name:\s*['`"]?(?:\.\./\.\./lib/host/preset-activation\.js|file:///\S*preset-activation\.js(?:\?rev=[^\s'`"]*)?)['`"]?\s*$"
+        $pOut = [System.Text.RegularExpressions.Regex]::Replace($pText, $pRe, "`$1name: '" + $url + "'")
+        # 启用该声明行：把它自己的 `disabled:` 改成 false（只动 preset-devflow 这一条）。
+        $pOut = Enable-PresetDeclaration $pOut
+        if ($pOut -eq $pText) {
+          Say '  ⚠️ 在 cordis.patch.yml 里没找到新形态预设声明行，未启用' 'Yellow'
+        } elseif ($DryRun) {
+          Say "  （DryRun：将启用新形态预设声明于 $patchWrite，本次不写）" 'Yellow'
+        } else {
+          Copy-Item -LiteralPath $patchWrite -Destination "$patchWrite.bak-devflow-$stamp" -Force
+          WriteText $patchWrite $pOut
+          Say "  ✅ 新形态预设声明已启用 -> $patchWrite" 'Green'
+        }
+      }
+    } else {
+      Say '  目标 dsh 不认声明式预设（< 0.1.7）⇒ 新形态保持禁用，只用旧形态（目录式）' 'Gray'
+    }
   }
 }
 

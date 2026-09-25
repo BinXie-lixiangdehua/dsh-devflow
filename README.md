@@ -1,6 +1,6 @@
 # DevFlow
 
-**Version `1.1.0`** · 2026-09-24
+**Version `1.2.0`** · 2026-09-25
 
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
@@ -46,20 +46,24 @@ Useful switches:
 .\install.ps1 -SkipPreset
 
 # install a specific tag/branch
-.\install.ps1 -Ref 'v1.1.0'
+.\install.ps1 -Ref 'v1.2.0'
 ```
 
 ## What the installer actually changes
 
-It touches **exactly four things**, and backs up every file it rewrites:
+It touches **exactly five things**, and backs up every file it rewrites:
 
 1. **Puts the plugin on disk** — clones (or copies) into `~/.dsh/local-plugins/dsh-devflow` by default.
-2. **Registers the profile bundle** — in `~/.dsh/profiles/<profile>/package.json`:
+2. **Installs the plugin's own dependencies** — runs `pnpm install` **inside the plugin directory**. `lib/index.js` is ESM and every `@deepseek-ai/*` package is a peer dependency, so installing only the *profile* leaves them unresolvable and the host fails to import the plugin (`ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/cordis'`) while older hosts report only a bare `failed to import`. This step runs **before** the profile is touched: a bad install fails loudly here instead of leaving a rewritten profile behind. Pass `-SkipPluginDeps` to skip it deliberately.
+3. **Registers the profile bundle** — in `~/.dsh/profiles/<profile>/package.json`:
    adds `"@xiaoxie-ide/dsh-devflow": "link:<install-dir>"` to `dependencies` and the package name to `dsh.profile.bundles`.
    The original file is saved as `package.json.bak-devflow-<timestamp>`.
-3. **Links dependencies** — runs `pnpm install` inside the profile so the `link:` symlink really exists.
-4. **Deploys the agent preset** — copies `presets/devflow/{agent.cordis.yml, preset.yml}` to `~/.dsh/.agent-presets/devflow/`,
-   rewriting the activation row from the checkout-relative path to an absolute `file:///.../lib/host/preset-activation.js?rev=<sha>` URL.
+4. **Links dependencies** — runs `pnpm install` inside the profile so the `link:` symlink really exists.
+5. **Deploys the agent preset — both forms, because the two dsh generations read different ones** —
+   * **legacy (dsh `0.1.5`)**: copies `presets/devflow/{agent.cordis.yml, preset.yml}` to `~/.dsh/.agent-presets/devflow/`, rewriting the activation row from the checkout-relative path to an absolute `file:///.../lib/host/preset-activation.js?rev=<sha>` URL;
+   * **declaration (dsh `0.1.7+`)**: rewrites the path in this plugin's own `cordis.patch.yml` `preset-devflow` declaration row to the same absolute URL. `0.1.7` no longer reads `~/.dsh/.agent-presets` at all, while `0.1.5` merely marks the unknown declaration as broken instead of failing the host — which is why one artifact can serve both.
+
+   `-DryRun` writes **nothing** (it reports which files it would touch).
 
 Then **restart dsh**, open a session, and pick the **DevFlow** preset. That is the whole install.
 

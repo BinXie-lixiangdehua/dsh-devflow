@@ -20,6 +20,10 @@ import { registerDevFlowTools } from './tools.ts'
 import { registerDevFlowCommands } from './commands.ts'
 import { CommanderMode } from './commander-mode.ts'
 import { DevFlowPresetActivation, type DevFlowBoundReport } from './preset-activation.ts'
+import {
+  createDevFlowSessionActivation,
+  type DevFlowSessionActivationMode,
+} from './activation-session-hook.ts'
 import { DevFlowClientBridge } from './client-bridge.ts'
 import { DevFlowChangeBus, committedWriteObserver } from './change-bus.ts'
 import { DEFAULT_FIXED_AGENTS } from './default-agents.ts'
@@ -36,6 +40,17 @@ export interface DevFlowConfig {
   devflowDir?: string
   /** Bundle-facing alias for {@link devflowDir}. */
   stateDir?: string
+  /**
+   * Who runs the per-Agent preset activation.
+   *
+   * `auto` (the default) asks the loaded Harness whether the per-Agent
+   * activation contract is still present: while it is (`0.1.5`), the Harness
+   * drives `activate()` through the preset row and the host **yields**; once it
+   * is gone (`0.1.7+`) the host drives it from `agent/created`. `host` and
+   * `preset-row` pin the choice for a deployment that needs to recover without
+   * waiting for a release.
+   */
+  sessionActivation?: DevFlowSessionActivationMode
 }
 
 const DEFAULT_DEVFLOW_DIR = './.devflow'
@@ -46,18 +61,30 @@ const DEFAULT_DEVFLOW_DIR = './.devflow'
  * @param config - raw plugin config.
  * @returns a detached validated config.
  */
-export function resolveConfig(config: DevFlowConfig): { devflowDir: string } {
+export function resolveConfig(config: DevFlowConfig): {
+  devflowDir: string
+  sessionActivation: DevFlowSessionActivationMode
+} {
   const devflowDir = (config as Partial<DevFlowConfig>).devflowDir
     ?? (config as Partial<DevFlowConfig>).stateDir
     ?? DEFAULT_DEVFLOW_DIR
   if (typeof devflowDir !== 'string' || devflowDir.trim() === '') {
     throw new Error('DevFlowConfig needs a non-empty string `devflowDir` or `stateDir`')
   }
-  const unknown = Object.keys(config).filter(key => key !== 'devflowDir' && key !== 'stateDir')
-  if (unknown.length > 0) {
-    throw new Error(`DevFlowConfig has unknown key(s) ${unknown.join(', ')}; config is { devflowDir?, stateDir? }`)
+  const sessionActivation = (config as Partial<DevFlowConfig>).sessionActivation ?? 'auto'
+  if (sessionActivation !== 'auto' && sessionActivation !== 'host' && sessionActivation !== 'preset-row') {
+    throw new Error(
+      `DevFlowConfig.sessionActivation must be "auto", "host" or "preset-row"; got ${JSON.stringify(sessionActivation)}`,
+    )
   }
-  return { devflowDir }
+  const unknown = Object.keys(config)
+    .filter(key => key !== 'devflowDir' && key !== 'stateDir' && key !== 'sessionActivation')
+  if (unknown.length > 0) {
+    throw new Error(
+      `DevFlowConfig has unknown key(s) ${unknown.join(', ')}; config is { devflowDir?, stateDir?, sessionActivation? }`,
+    )
+  }
+  return { devflowDir, sessionActivation }
 }
 
 /**
@@ -156,7 +183,7 @@ export class DevflowController extends Service {
     // subscriber.
     this.changeBus = new DevFlowChangeBus()
     ctx.effect(() => () => { this.changeBus.dispose() }, 'devflow: change bus')
-    const devflowDir = resolveConfig(config).devflowDir
+    const { devflowDir, sessionActivation } = resolveConfig(config)
     this.sessionStores = new DevFlowSessionStores(
       ctx.fs,
       devflowDir,
@@ -201,6 +228,22 @@ export class DevflowController extends Service {
       },
     )
     new DevFlowClientBridge(ctx)
+    // The per-Agent activation fallback. On a host that still drives preset
+    // activation itself this yields (resolves to `preset-row`), so `0.1.5`
+    // behavior is unchanged; where the contract is gone it installs the
+    // Commander from `agent/created`, which is the only seam left.
+    createDevFlowSessionActivation(
+      {
+        createActivationProvider: () => this.createActivationProvider(),
+        composedPreset: agent => agent.ctx.get('agentPresets')?.composedPreset(agent.ctx),
+        // Read live, not captured: the loader provides this service after the
+        // controller is constructed, and the hook asks its SHAPE (which mechanism
+        // the host runs) rather than caching the answer.
+        presetService: () => ctx.get('agentPresets'),
+        warn: message => { ctx.logger('devflow').warn(message) },
+      },
+      sessionActivation,
+    ).attach(ctx)
     void this.store.loadState()
       .then(state => { this.durableState = state })
       .catch(() => { this.durableState = initialDevFlowState() })
