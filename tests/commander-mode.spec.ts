@@ -90,15 +90,16 @@ describe('CommanderMode scoped tool restriction', () => {
       // the project's own rule file and `docs/` through the Commander seat.
       await expect(execute(tools, agent, NATIVE_TOOL)).resolves.toMatchObject({ isError: false })
       await expect(execute(tools, agent, OTHER_READ_ONLY_TOOL)).resolves.toMatchObject({ isError: false })
-      // The boundary the restriction exists for is unchanged: no write, no shell.
-      await expect(execute(tools, agent, CHILD_TOOL)).resolves.toMatchObject({
-        isError: true,
-        error: { info: { code: 'UNKNOWN_TOOL' } },
-      })
-      await expect(execute(tools, agent, SHELL_TOOL)).resolves.toMatchObject({
-        isError: true,
-        error: { info: { code: 'UNKNOWN_TOOL' } },
-      })
+      // The boundary this seat exists for is unchanged — and is now carried by
+      // the execution guard, not by visibility alone. `restrict()` still hides
+      // these two from the model-facing schema list, and on top of that the
+      // armed guard denies every one of them at execution, which is what makes
+      // an unfilterable own-scope registration harmless too.
+      for (const name of [CHILD_TOOL, SHELL_TOOL]) {
+        const denied = await execute(tools, agent, name)
+        expect(denied.isError, name).toBe(true)
+        expect(JSON.stringify(denied.content), name).toContain('Commander seat denies')
+      }
 
       commander.exit(agent)
       expect(names(tools, agent)).toEqual(FULL_VIEW)

@@ -29,6 +29,7 @@ import type {
   DevFlowActivationLease,
   DevFlowActivationProvider,
 } from '../src/host/preset-activation.ts'
+import { DEVFLOW_TOOL_NAMES } from '../src/host/capability-scope.ts'
 
 // ── The two host mechanisms, as the hook sees them ──────────────────────────
 // Shapes only: the hook must never call through these, just read their identity.
@@ -51,21 +52,26 @@ const SERVICE_015 = {
 // ── A minimal fake Cordis context: this suite is about the hook's own logic ──
 
 /** One subscribed listener. */
-type Listener = (payload: unknown) => void
+type Listener = (...args: unknown[]) => void
 
 /** The fake context plus the handles a test drives it with. */
 interface FakeHost {
   readonly ctx: Context
+  /** Publish one service, as the host's loader would. */
+  provide(name: string, value: unknown): void
   /** Fire `agent/created`, exactly as the host does. */
   created(agent: Agent): void
   /** Fire `agent/disposed`, exactly as the host does. */
   disposed(agent: Agent): void
+  /** Fire the preset registry's `agent-preset/selected` signal (two positional args). */
+  presetSelected(sessionId: string, agentPreset: string): void
   /** Every listener currently subscribed for one event name. */
   listeners(event: string): readonly Listener[]
 }
 
 function fakeHost(): FakeHost {
   const listeners = new Map<string, Listener[]>()
+  const services = new Map<string, unknown>()
   const ctx = {
     on(event: string, listener: Listener) {
       const bucket = listeners.get(event) ?? []
@@ -73,21 +79,62 @@ function fakeHost(): FakeHost {
       listeners.set(event, bucket)
       return () => {}
     },
+    provide(name: string, value: unknown) { services.set(name, value) },
+    get(name: string) { return services.get(name) },
   } as unknown as Context
-  const fire = (event: string, payload: unknown): void => {
-    for (const listener of listeners.get(event) ?? []) listener(payload)
+  const fire = (event: string, ...args: unknown[]): void => {
+    for (const listener of listeners.get(event) ?? []) listener(...args)
   }
   return {
     ctx,
+    provide: (name, value) => { services.set(name, value) },
     created: agent => fire('agent/created', { agent }),
     disposed: agent => fire('agent/disposed', { agent }),
+    presetSelected: (sessionId, agentPreset) => fire('agent-preset/selected', sessionId, agentPreset),
     listeners: event => listeners.get(event) ?? [],
+  }
+}
+
+/** What one fake Agent's capability scoping did, for the assertions. */
+interface FakeAgentSurface {
+  readonly agent: Agent
+  /** Every `restrict()` filter the hook applied to this Agent. */
+  readonly restrictions: unknown[]
+  /** How many applied restrictions were released again. */
+  readonly releases: () => number
+  /** Change what this Agent's live preset plane answers. */
+  readonly setComposed: (preset: string | undefined) => void
+}
+
+/**
+ * A fake Agent carrying only what the hook reads: `id`, `session.header`, and the
+ * live preset plane plus the tool runtime the capability scope touches.
+ */
+function fakeAgentSurface(id: string, composed: string | undefined = 'devflow'): FakeAgentSurface {
+  const state = { composed, restrictions: [] as unknown[], releases: 0 }
+  const ctx = {
+    get: (name: string) => (name === 'agentPresets' ? { composedPreset: () => state.composed } : undefined),
+    tools: {
+      // The whole family is visible to the fixture, plus two native names, so a
+      // `deny` filter is exercised exactly as it would be on a standard session.
+      schemas: () => [...DEVFLOW_TOOL_NAMES, 'read', 'write'].map(name => ({ name })),
+      restrict: (filter: unknown) => {
+        state.restrictions.push(filter)
+        return () => { state.releases += 1 }
+      },
+    },
+  }
+  return {
+    agent: { id, ctx, session: { header: {} } } as unknown as Agent,
+    restrictions: state.restrictions,
+    releases: () => state.releases,
+    setComposed: preset => { state.composed = preset },
   }
 }
 
 /** A fake Agent carrying only what the hook reads: `id` and `ctx`. */
 function fakeAgent(id: string): Agent {
-  return { id, ctx: {} } as unknown as Agent
+  return fakeAgentSurface(id).agent
 }
 
 /** A provider whose activation outcome the test scripts. */
@@ -486,5 +533,211 @@ describe('接线本身', () => {
       for (const listener of host.listeners('agent/disposed')) listener({})
     }).not.toThrow()
     await hook.settled()
+  })
+})
+
+describe('预设变更边缘：换出去就卸，换回来就装', () => {
+  it('★ devflow → 别的预设：立刻卸租约、登记清空，且不重装', async () => {
+    let deactivations = 0
+    const { provider, leases } = fakeProvider({ onDeactivate: () => { deactivations += 1 } })
+    let composed = 'devflow'
+    const { host, hook } = build({ provider, preset: () => composed })
+    const agent = fakeAgent('session-switch-out')
+    host.provide('agents', { get: (id: string) => (id === agent.id ? agent : undefined) })
+
+    host.created(agent)
+    await hook.settled()
+    expect(hook.liveCount).toBe(1)
+
+    composed = 'standard'
+    host.presetSelected(agent.id, 'standard')
+    await hook.settled()
+
+    expect(deactivations).toBe(1)
+    expect(hook.liveCount).toBe(0)
+    expect(leases()).toHaveLength(1)
+  })
+
+  it('★ 别的预设 → devflow：立刻装回来', async () => {
+    const { provider, leases } = fakeProvider()
+    let composed = 'standard'
+    const { host, hook } = build({ provider, preset: () => composed })
+    const agent = fakeAgent('session-switch-in')
+    host.provide('agents', { get: () => agent })
+
+    host.created(agent)
+    await hook.settled()
+    expect(hook.liveCount).toBe(0)
+
+    composed = 'devflow'
+    host.presetSelected(agent.id, 'devflow')
+    await hook.settled()
+
+    expect(leases()).toHaveLength(1)
+    expect(hook.liveCount).toBe(1)
+  })
+
+  it('反复切换：租约不泄漏，回到 devflow 每次只装一个', async () => {
+    let deactivations = 0
+    const { provider, leases } = fakeProvider({ onDeactivate: () => { deactivations += 1 } })
+    let composed = 'devflow'
+    const { host, hook } = build({ provider, preset: () => composed })
+    const agent = fakeAgent('session-switch-loop')
+    host.provide('agents', { get: () => agent })
+
+    for (let round = 0; round < 3; round += 1) {
+      host.created(agent)
+      await hook.settled()
+      composed = 'standard'
+      host.presetSelected(agent.id, 'standard')
+      await hook.settled()
+      composed = 'devflow'
+      host.presetSelected(agent.id, 'devflow')
+      await hook.settled()
+    }
+
+    expect(hook.liveCount).toBe(1)
+    expect(deactivations).toBe(3)
+    expect(leases()).toHaveLength(4)
+  })
+
+  it('同一方向的重复信号不重复装卸（幂等）', async () => {
+    let deactivations = 0
+    const { provider, leases } = fakeProvider({ onDeactivate: () => { deactivations += 1 } })
+    const { host, hook } = build({ provider })
+    const agent = fakeAgent('session-switch-idem')
+    host.provide('agents', { get: () => agent })
+
+    host.created(agent)
+    await hook.settled()
+    host.presetSelected(agent.id, 'devflow')
+    host.presetSelected(agent.id, 'devflow')
+    await hook.settled()
+    expect(leases()).toHaveLength(1)
+    expect(hook.liveCount).toBe(1)
+
+    host.presetSelected(agent.id, 'standard')
+    host.presetSelected(agent.id, 'standard')
+    await hook.settled()
+    expect(deactivations).toBe(1)
+    expect(hook.liveCount).toBe(0)
+  })
+
+  it('让位模式下（0.1.5 形态）预设变更不动租约（不得双跑）', async () => {
+    const { provider, leases } = fakeProvider()
+    const { host, hook } = build({ provider, presetService: SERVICE_015 })
+    const agent = fakeAgent('session-switch-yield')
+    host.provide('agents', { get: () => agent })
+
+    host.created(agent)
+    host.presetSelected(agent.id, 'devflow')
+    host.presetSelected(agent.id, 'standard')
+    await hook.settled()
+
+    expect(leases()).toHaveLength(0)
+    expect(hook.liveCount).toBe(0)
+  })
+
+  it('attach 也会订阅预设变更边缘，重复 attach 不重复订阅', () => {
+    const { host, hook } = build({ provider: fakeProvider().provider })
+    hook.attach(host.ctx)
+
+    expect(host.listeners('agent/created')).toHaveLength(1)
+    expect(host.listeners('agent/disposed')).toHaveLength(1)
+    expect(host.listeners('agent-preset/selected')).toHaveLength(1)
+  })
+
+  it('预设变更事件的载荷不合法时不炸（防御性）', async () => {
+    const { host, hook } = build({ provider: fakeProvider().provider })
+    expect(() => {
+      for (const listener of host.listeners('agent-preset/selected')) listener(undefined)
+      for (const listener of host.listeners('agent-preset/selected')) listener('session-x', 42)
+    }).not.toThrow()
+    await hook.settled()
+  })
+})
+
+describe('能力可见性：随预设收窄与释放', () => {
+  it('★ standard 会话创建即收窄；切到 devflow 释放', async () => {
+    const { provider } = fakeProvider()
+    let composed = 'standard'
+    const { host, hook } = build({ provider, preset: () => composed })
+    const surface = fakeAgentSurface('session-scope', 'standard')
+    host.provide('agents', { get: () => surface.agent })
+
+    host.created(surface.agent)
+    await hook.settled()
+    expect(hook.scopedCount).toBe(1)
+    expect(surface.restrictions).toHaveLength(1)
+    expect(surface.restrictions[0]).toEqual({ deny: [...DEVFLOW_TOOL_NAMES] })
+
+    composed = 'devflow'
+    surface.setComposed('devflow')
+    host.presetSelected(surface.agent.id, 'devflow')
+    await hook.settled()
+
+    expect(hook.scopedCount).toBe(0)
+    expect(surface.releases()).toBe(1)
+  })
+
+  it('devflow 会话从头到尾都不动可见性（判据 2-2 的硬门槛）', async () => {
+    const { provider } = fakeProvider()
+    const { host, hook } = build({ provider })
+    const surface = fakeAgentSurface('session-scope-devflow', 'devflow')
+
+    host.created(surface.agent)
+    await hook.settled()
+
+    expect(hook.scopedCount).toBe(0)
+    expect(surface.restrictions).toHaveLength(0)
+  })
+
+  it('agent/disposed 释放能力收窄（不泄漏）', async () => {
+    const { provider } = fakeProvider()
+    const { host, hook } = build({ provider, preset: () => 'standard' })
+    const surface = fakeAgentSurface('session-scope-dispose', 'standard')
+
+    host.created(surface.agent)
+    await hook.settled()
+    expect(hook.scopedCount).toBe(1)
+
+    host.disposed(surface.agent)
+    await hook.settled()
+    expect(hook.scopedCount).toBe(0)
+    expect(surface.releases()).toBe(1)
+  })
+
+  it('同方向的重复信号不叠加收窄（幂等）', async () => {
+    const { provider } = fakeProvider()
+    const { host, hook } = build({ provider, preset: () => 'standard' })
+    const surface = fakeAgentSurface('session-scope-idem', 'standard')
+    host.provide('agents', { get: () => surface.agent })
+
+    host.created(surface.agent)
+    for (let round = 0; round < 3; round += 1) {
+      host.presetSelected(surface.agent.id, 'standard')
+      host.presetSelected(surface.agent.id, 'standard')
+    }
+    await hook.settled()
+
+    expect(hook.scopedCount).toBe(1)
+    expect(surface.restrictions).toHaveLength(1)
+  })
+
+  it('收窄失败只是一条 warning，不会把 Agent 弄坏', async () => {
+    const warn = vi.fn()
+    const { provider } = fakeProvider()
+    const { host, hook } = build({ provider, preset: () => 'standard', warn })
+    const surface = fakeAgentSurface('session-scope-throws', 'standard')
+    ;(surface.agent.ctx as unknown as { tools: { restrict: () => never } }).tools.restrict = () => {
+      throw new Error('restrict refused')
+    }
+
+    expect(() => { host.created(surface.agent) }).not.toThrow()
+    await hook.settled()
+
+    expect(hook.scopedCount).toBe(0)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('restrict refused')
   })
 })

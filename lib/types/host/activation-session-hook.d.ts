@@ -34,6 +34,16 @@
  * A per-Agent lease Map plus an in-flight guard backs that up: whichever mode
  * resolves, an Agent that already holds a lease is never activated a second time.
  *
+ * ## The reversal edge (added 2026-10-01)
+ *
+ * Installing on `agent/created` is only half the lifecycle: a session may switch
+ * preset while it is still blank, and `agent/disposed` never fires for that. The
+ * measured consequence was a session that read `标准模式` while still running the
+ * Commander persona and its deny-guard. The hook therefore also listens for the
+ * preset registry's `agent-preset/selected` signal — switching away releases the
+ * lease, switching back re-installs — and re-evaluates the per-Agent DevFlow
+ * capability scope on the same edge.
+ *
  * @module @xiaoxie-ide/dsh-devflow/activation-session-hook
  */
 import type { Context } from '@deepseek-ai/cordis';
@@ -88,7 +98,7 @@ export interface DevFlowSessionActivationDeps {
 export declare function hostDrivesPerAgentActivation(service: unknown): boolean;
 /** Attach-once surface, kept tiny so the host bundle stays readable. */
 export interface DevFlowSessionActivationHook {
-    /** Subscribe the two Agent lifecycle edges. Idempotent. */
+    /** Subscribe the Agent lifecycle and preset-change edges. Idempotent. */
     attach(ctx: Context): void;
     /**
      * Resolve once every in-flight activation and teardown has settled.
@@ -101,6 +111,8 @@ export interface DevFlowSessionActivationHook {
     settled(): Promise<void>;
     /** How many Agents currently hold a live lease (diagnostics and tests). */
     readonly liveCount: number;
+    /** How many Agents currently carry a DevFlow-capability hide (diagnostics and tests). */
+    readonly scopedCount: number;
     /** The mode in force right now (re-read per edge in `auto`). */
     readonly mode: DevFlowResolvedActivationMode;
     /** Subscribe to mode changes (diagnostics and tests). */

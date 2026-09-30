@@ -755,6 +755,11 @@ export class DevFlowPresetActivation {
 const SETTLE_ATTEMPTS = 4
 const SETTLE_WAIT_MS = 40
 
+// Exported so the wrapper's contract can be pinned against the real budget
+// instead of a copy of the number. The value and the retry logic below are
+// unchanged from HEAD; this adds an export only.
+export { SETTLE_ATTEMPTS }
+
 /** Whether a failure is the activation's own live-verification refusal. */
 function isVerificationFailure(error: unknown): boolean {
   return activationFaultCode(error) === DEVFLOW_ACTIVATION_CODES.verificationFailed

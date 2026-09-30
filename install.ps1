@@ -96,29 +96,265 @@ function Test-DshAtLeast([string]$Version, [int]$Major, [int]$Minor, [int]$Patch
   return $true
 }
 
-# 目标 dsh 的版本号。宿主不一定以包依赖形式出现（本机就是从源码检出直接跑的
-# node --import tsx/esm apps/cli/src/bin.ts），所以这里给一串候选探测：
-# 一、-DshVersion 显式给出；
-# 二、从 profile 目录向上找 node_modules 里的 @deepseek-ai/dsh；
-# 三、宿主源码/构建检出的根 package.json（从 profile 向上找 apps/cli/package.json，
-#     它的上一级就是根；本机两个宿主都在 apps/cli/package.json 里带版本）。
-# 都读不到就返回空串，调用方按「不认声明」处理并提示 -PresetDeclaration。
-function Get-DshVersion([string]$ProfileDirectory, [string]$Explicit) {
-  if (-not [string]::IsNullOrWhiteSpace($Explicit)) { return $Explicit }
-  $dir = $ProfileDirectory
-  for ($i = 0; $i -lt 8; $i++) {
-    if ([string]::IsNullOrEmpty($dir)) { break }
-    $candidate = Join-Path $dir 'node_modules\@deepseek-ai\dsh\package.json'
+# ── 目标 dsh 的版本探测 ───────────────────────────────────────────────────────
+#
+# 「profile 软链指向的宿主」≠「实际运行的宿主」。2026-10-01 本机实测：
+#   · ~/.dsh/profiles/node_modules/@deepseek-ai/dsh  →(软链)→ D:\Deepseek\Harness\apps\cli
+#     该 package.json 的 version 真值就是 0.1.5-rc.2；
+#   · 而 :3080 上实际在跑的是从 D:\Deepseek\Harness-017 起跑的 0.1.7-rc.2。
+# 旧探测只做「profile 目录向上找」，于是忠实读出 0.1.5 ⇒ 声明式预设保持 disabled ⇒
+# 0.1.7 的选择列表里看不到 DevFlow 预设。
+#
+# 因此探测按下面的顺序取**第一个有答案的来源**，并把「版本 + 来源路径 + 依据」一起交回：
+#   1. -DshVersion 显式给出；
+#   2. 运行中的 dsh 进程：读进程的工作目录（PEB，**不需要管理员权限、不需要外部/未签名二进制**）
+#      ⇒ 该检出即「真正在跑的宿主」；只采用 DSH_HOME 与本目标家目录一致的进程，避免把
+#      另一个 DSH_HOME 的宿主当成本目标的宿主。探测不到的进程会被逐条列出并说明未采用原因。
+#   3. dsh 命令入口（Get-Command / where.exe dsh）⇒ 用户实际调用的那条路；
+#   4. profile 目录向上找 node_modules\@deepseek-ai\dsh（旧逻辑，即软链目标）——只作兜底。
+#
+# 都读不到 ⇒ 版本留空，调用方按「不认声明式预设」处理并提示 -PresetDeclaration。
+function Read-CheckoutVersion([string]$Root) {
+  if ([string]::IsNullOrWhiteSpace($Root)) { return '' }
+  foreach ($rel in @('apps\cli\package.json', 'node_modules\@deepseek-ai\dsh\package.json')) {
+    $candidate = Join-Path $Root $rel
     if (Test-Path -LiteralPath $candidate) {
       try { return [string]((ReadText $candidate) | ConvertFrom-Json).version } catch { }
     }
-    $cli = Join-Path $dir 'apps\cli\package.json'
-    if (Test-Path -LiteralPath $cli) {
-      try { return [string]((ReadText $cli) | ConvertFrom-Json).version } catch { }
-    }
-    $dir = Split-Path -Parent $dir
   }
   return ''
+}
+
+# PEB 读取用的 P/Invoke 只在真的需要时才编译；编译不出来就把整条进程探测降级（不报错）。
+$script:DshProcProbeReady = $null
+function Test-DshProcProbe {
+  if ($null -ne $script:DshProcProbeReady) { return $script:DshProcProbeReady }
+  $script:DshProcProbeReady = $false
+  try {
+    Add-Type -Namespace DshInstall -Name Native -MemberDefinition @'
+[DllImport("kernel32.dll", SetLastError=true)]
+public static extern IntPtr OpenProcess(int access, bool inherit, int pid);
+[DllImport("kernel32.dll", SetLastError=true)]
+public static extern bool ReadProcessMemory(IntPtr h, IntPtr addr, byte[] buf, int size, out IntPtr read);
+[DllImport("kernel32.dll", SetLastError=true)]
+public static extern bool CloseHandle(IntPtr h);
+[DllImport("ntdll.dll")]
+public static extern int NtQueryInformationProcess(IntPtr h, int cls, byte[] info, int len, out int ret);
+'@ -ErrorAction Stop
+    $script:DshProcProbeReady = $true
+  } catch {
+    $script:DshProcProbeReady = $false
+  }
+  return $script:DshProcProbeReady
+}
+
+function Read-RemoteBytes([IntPtr]$Handle, [IntPtr]$Address, [int]$Size) {
+  $buffer = New-Object byte[] $Size
+  $read = [IntPtr]::Zero
+  if (-not [DshInstall.Native]::ReadProcessMemory($Handle, $Address, $buffer, $Size, [ref]$read)) { return $null }
+  return $buffer
+}
+
+# 读远端进程里一个 UNICODE_STRING（Length/MaximumLength + Buffer 指针）。
+function Read-RemoteUnicodeString([IntPtr]$Handle, [IntPtr]$Address) {
+  $head = Read-RemoteBytes $Handle $Address 16
+  if ($null -eq $head) { return $null }
+  $length = [BitConverter]::ToUInt16($head, 0)
+  if ([IntPtr]::Size -eq 8) { $pointer = [IntPtr][BitConverter]::ToInt64($head, 8) }
+  else { $pointer = [IntPtr][BitConverter]::ToInt32($head, 4) }
+  if ($length -eq 0 -or $pointer -eq [IntPtr]::Zero) { return '' }
+  $bytes = Read-RemoteBytes $Handle $pointer $length
+  if ($null -eq $bytes) { return $null }
+  return [System.Text.Encoding]::Unicode.GetString($bytes)
+}
+
+# 一个 dsh 进程的工作目录与 DSH_HOME。读不到就返回 $null（调用方跳过该进程）。
+function Get-DshProcessFacts([int]$ProcessId) {
+  $PROCESS_QUERY_INFORMATION = 0x0400
+  $PROCESS_VM_READ = 0x0010
+  $handle = [DshInstall.Native]::OpenProcess($PROCESS_QUERY_INFORMATION -bor $PROCESS_VM_READ, $false, $ProcessId)
+  if ($handle -eq [IntPtr]::Zero) { return $null }
+  try {
+    $basic = New-Object byte[] 48
+    $returned = 0
+    $status = [DshInstall.Native]::NtQueryInformationProcess($handle, 0, $basic, 48, [ref]$returned)
+    if ($status -ne 0) { return $null }
+    if ([IntPtr]::Size -eq 8) { $peb = [IntPtr][BitConverter]::ToInt64($basic, 8) } else { $peb = [IntPtr][BitConverter]::ToInt32($basic, 4) }
+    if ($peb -eq [IntPtr]::Zero) { return $null }
+    if ([IntPtr]::Size -eq 8) { $parametersOffset = 0x20 } else { $parametersOffset = 0x10 }
+    if ([IntPtr]::Size -eq 8) { $cwdOffset = 0x38; $environmentOffset = 0x80 } else { $cwdOffset = 0x24; $environmentOffset = 0x48 }
+    $pointerBytes = Read-RemoteBytes $handle ([IntPtr]::Add($peb, $parametersOffset)) 8
+    if ($null -eq $pointerBytes) { return $null }
+    if ([IntPtr]::Size -eq 8) { $parameters = [IntPtr][BitConverter]::ToInt64($pointerBytes, 0) } else { $parameters = [IntPtr][BitConverter]::ToInt32($pointerBytes, 0) }
+    if ($parameters -eq [IntPtr]::Zero) { return $null }
+    $cwd = Read-RemoteUnicodeString $handle ([IntPtr]::Add($parameters, $cwdOffset))
+
+    # DSH_HOME 只从环境块里取这一个名字，用来判断这个宿主属于哪个家目录。
+    $dshHome = ''
+    $environmentPointerBytes = Read-RemoteBytes $handle ([IntPtr]::Add($parameters, $environmentOffset)) 8
+    if ($null -ne $environmentPointerBytes) {
+      if ([IntPtr]::Size -eq 8) { $environmentPointer = [IntPtr][BitConverter]::ToInt64($environmentPointerBytes, 0) } else { $environmentPointer = [IntPtr][BitConverter]::ToInt32($environmentPointerBytes, 0) }
+      if ($environmentPointer -ne [IntPtr]::Zero) {
+        $chunkSize = 8192
+        $collected = New-Object byte[] 0
+        for ($chunk = 0; $chunk -lt 32; $chunk++) {
+          $part = Read-RemoteBytes $handle ([IntPtr]::Add($environmentPointer, $chunk * $chunkSize)) $chunkSize
+          if ($null -eq $part) { break }
+          $collected += $part
+          $tail = $part.Length
+          if ($tail -ge 4 -and $part[$tail - 1] -eq 0 -and $part[$tail - 2] -eq 0 -and $part[$tail - 3] -eq 0 -and $part[$tail - 4] -eq 0) { break }
+        }
+        if ($collected.Length -gt 0) {
+          $block = [System.Text.Encoding]::Unicode.GetString($collected)
+          foreach ($entry in ($block -split "`0")) {
+            if ($entry -like 'DSH_HOME=*') { $dshHome = $entry.Substring(9); break }
+          }
+        }
+      }
+    }
+    return [pscustomobject]@{ Cwd = $cwd; DshHome = $dshHome }
+  } catch {
+    return $null
+  } finally {
+    [void][DshInstall.Native]::CloseHandle($handle)
+  }
+}
+
+# 所有「从源码检出直接起跑」的 dsh 进程（命令行里带 apps/cli/src/bin.ts）。
+function Get-RunningDshHosts {
+  $found = @()
+  if (-not (Test-DshProcProbe)) { return $found }
+  $processes = @()
+  try {
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction Stop | Where-Object {
+      $line = $_.CommandLine
+      if ($null -eq $line) { return $false }
+      if ($line -notlike '*apps/cli/src/bin.ts*' -and $line -notlike '*apps\cli\src\bin.ts*') { return $false }
+      # 必须是「node … apps/cli/src/bin.ts <app>」这种直接起跑。排除只是把这段文字
+      # 当参数带进来的壳进程（powershell -Command、tsx 包装器），否则它们会被误判成宿主。
+      if ($line -like '*-Command*' -or $line -like '*powershell*' -or $line -like '*subprocess-local*') { return $false }
+      return $true
+    })
+  } catch {
+    return $found
+  }
+  foreach ($process in $processes) {
+    $facts = Get-DshProcessFacts $process.ProcessId
+    if ($null -eq $facts -or [string]::IsNullOrWhiteSpace($facts.Cwd)) { continue }
+    $root = $facts.Cwd.TrimEnd('\')
+    $version = Read-CheckoutVersion $root
+    if ([string]::IsNullOrWhiteSpace($version)) { continue }
+    $found += [pscustomobject]@{
+      ProcessId = $process.ProcessId
+      Cwd = $root
+      Version = $version
+      DshHome = $facts.DshHome
+      MatchesTargetHome = $false
+    }
+  }
+  return $found
+}
+
+function Get-NormalizedHome([string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($Path)) { return '' }
+  try { $full = [System.IO.Path]::GetFullPath($Path) } catch { $full = $Path }
+  return $full.TrimEnd('\').ToLowerInvariant()
+}
+
+# 一次探测的全部结果：Version 为空 = 读不到（调用方按「不认声明」处理）。
+function Get-DshProbe([string]$ProfileDirectory, [string]$Explicit, [string]$TargetHome) {
+  $probe = [pscustomobject]@{
+    Version = ''
+    SourceKind = ''
+    SourcePath = ''
+    ProfileVersion = ''
+    ProfileSourcePath = ''
+    RunningHosts = @()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Explicit)) {
+    $probe.Version = $Explicit
+    $probe.SourceKind = '参数 -DshVersion（显式指定）'
+    $probe.SourcePath = '(未探测)'
+    return $probe
+  }
+
+  # 先算 profile 向上解析的结果：既是兜底来源，也是「两者不一致」告警的对照。
+  $directory = $ProfileDirectory
+  for ($i = 0; $i -lt 8; $i++) {
+    if ([string]::IsNullOrEmpty($directory)) { break }
+    $candidate = Join-Path $directory 'node_modules\@deepseek-ai\dsh\package.json'
+    if (Test-Path -LiteralPath $candidate) {
+      try {
+        $probe.ProfileVersion = [string]((ReadText $candidate) | ConvertFrom-Json).version
+        $probe.ProfileSourcePath = $candidate
+      } catch { }
+      break
+    }
+    $cli = Join-Path $directory 'apps\cli\package.json'
+    if (Test-Path -LiteralPath $cli) {
+      try {
+        $probe.ProfileVersion = [string]((ReadText $cli) | ConvertFrom-Json).version
+        $probe.ProfileSourcePath = $cli
+      } catch { }
+      break
+    }
+    $directory = Split-Path -Parent $directory
+  }
+
+  # 来源 2：运行中的宿主，按 DSH_HOME 归属筛选。
+  $target = Get-NormalizedHome $TargetHome
+  $defaultTarget = Get-NormalizedHome (Join-Path $HOME '.dsh')
+  $hosts = @(Get-RunningDshHosts)
+  foreach ($live in $hosts) {
+    $liveHome = Get-NormalizedHome $live.DshHome
+    if ([string]::IsNullOrEmpty($liveHome)) { $live.MatchesTargetHome = ($target -eq $defaultTarget) }
+    else { $live.MatchesTargetHome = ($liveHome -eq $target) }
+    if ($live.MatchesTargetHome -and [string]::IsNullOrWhiteSpace($probe.Version)) {
+      $probe.Version = $live.Version
+      $probe.SourceKind = "运行中的 dsh 进程（PID $($live.ProcessId)，DSH_HOME 与本目标一致）"
+      $probe.SourcePath = Join-Path $live.Cwd 'apps\cli\package.json'
+      if (-not (Test-Path -LiteralPath $probe.SourcePath)) { $probe.SourcePath = Join-Path $live.Cwd 'node_modules\@deepseek-ai\dsh\package.json' }
+    }
+  }
+  $probe.RunningHosts = $hosts
+  if (-not [string]::IsNullOrWhiteSpace($probe.Version)) { return $probe }
+
+  # 来源 3：用户实际调用的 dsh 入口。
+  $entry = ''
+  $command = Get-Command dsh -ErrorAction SilentlyContinue
+  if ($null -ne $command) {
+    if (-not [string]::IsNullOrWhiteSpace($command.Source)) { $entry = $command.Source }
+    elseif (-not [string]::IsNullOrWhiteSpace($command.Path)) { $entry = $command.Path }
+  }
+  if ([string]::IsNullOrWhiteSpace($entry)) {
+    try {
+      $where = @(& where.exe dsh 2>$null)
+      if ($LASTEXITCODE -eq 0 -and $where.Count -gt 0) { $entry = [string]$where[0] }
+    } catch { }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($entry)) {
+    if (Test-Path -LiteralPath $entry) { $entry = (Get-Item -LiteralPath $entry).FullName }
+    $directory = Split-Path -Parent $entry
+    for ($i = 0; $i -lt 6; $i++) {
+      if ([string]::IsNullOrEmpty($directory)) { break }
+      $version = Read-CheckoutVersion $directory
+      if (-not [string]::IsNullOrWhiteSpace($version)) {
+        $probe.Version = $version
+        $probe.SourceKind = "dsh 命令入口（$entry）"
+        $probe.SourcePath = $directory
+        return $probe
+      }
+      $directory = Split-Path -Parent $directory
+    }
+  }
+
+  # 来源 4：profile 软链目标（旧逻辑）。
+  if (-not [string]::IsNullOrWhiteSpace($probe.ProfileVersion)) {
+    $probe.Version = $probe.ProfileVersion
+    $probe.SourceKind = 'profile 目录向上解析 @deepseek-ai/dsh（软链目标）'
+    $probe.SourcePath = $probe.ProfileSourcePath
+  }
+  return $probe
 }
 
 # 是否启用「新形态」预设声明（dsh >= 0.1.7 才有 @deepseek-ai/dsh-agent-preset）。
@@ -362,13 +598,27 @@ if ($SkipPreset) {
     # 而它自己的审计明确写着「Disabled entries are the only valid」未解析项
     # （`packages/boot/app-boot/src/index.ts:683`）⇒ 只有**禁用**的行才能两版共存。
     # 因此：≥0.1.7 才把它改成 enabled 并写入绝对 URL；0.1.5 保持禁用。
-    $dshVer = Get-DshVersion $ProfileDir $DshVersion
+    $dshProbe = Get-DshProbe $ProfileDir $DshVersion $DshHome
+    $dshVer = $dshProbe.Version
     $enableDeclaration = switch ($PresetDeclaration) {
       'on' { $true }
       'off' { $false }
       default { Test-DeclarationSupported $dshVer }
     }
     Say ("  目标 dsh 版本 : " + $(if ([string]::IsNullOrWhiteSpace($dshVer)) { '（读不到）' } else { $dshVer }))
+    Say ("  探测来源路径  : " + $(if ([string]::IsNullOrWhiteSpace($dshProbe.SourcePath)) { '（未探测到）' } else { $dshProbe.SourcePath }))
+    Say ("  探测依据      : " + $(if ([string]::IsNullOrWhiteSpace($dshProbe.SourceKind)) { '（未探测到）' } else { $dshProbe.SourceKind }))
+    if (@($dshProbe.RunningHosts).Count -gt 0) {
+      foreach ($live in @($dshProbe.RunningHosts)) {
+        $verdict = if ($live.MatchesTargetHome) { '采用' } else { '未采用：DSH_HOME 与本目标不一致' }
+        $homeText = if ([string]::IsNullOrEmpty($live.DshHome)) { '<未设置=默认家目录>' } else { $live.DshHome }
+        Say ("  运行中 dsh    : PID $($live.ProcessId)  $($live.Version)  cwd=$($live.Cwd)  DSH_HOME=$homeText  [$verdict]")
+      }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($dshProbe.ProfileVersion) -and $dshProbe.ProfileVersion -ne $dshVer) {
+      Say "  ⚠️ 检出不一致  : profile 软链目标是 $($dshProbe.ProfileVersion)（$($dshProbe.ProfileSourcePath)），" 'Yellow'
+      Say "                  而实际采用 $dshVer。不一致时以「运行中的宿主」为准；若判断有误，请用 -PresetDeclaration on/off 显式覆盖。" 'Yellow'
+    }
     if ($enableDeclaration) {
       $patchRead = if ($DryRun) { Join-Path $Source 'cordis.patch.yml' } else { Join-Path $InstallDir 'cordis.patch.yml' }
       $patchWrite = Join-Path $InstallDir 'cordis.patch.yml'

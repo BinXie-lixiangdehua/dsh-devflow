@@ -286,6 +286,16 @@ export declare class DevFlowPresetActivation {
     private lease;
 }
 /**
+ * How many times one published activation re-runs after a live-verification
+ * failure, and the wait between runs.
+ *
+ * The wait only has to cover the harness's own asynchronous removal of an
+ * Agent-owned registration (a fiber disposal), never a state the deployment
+ * could not reach, so the budget stays small and the failure path unchanged.
+ */
+declare const SETTLE_ATTEMPTS = 4;
+export { SETTLE_ATTEMPTS };
+/**
  * Run one activation, re-running it while a composition switch is still
  * settling.
  *

@@ -1,6 +1,6 @@
 # DevFlow
 
-**Version `1.2.0`** · 2026-09-25
+**Version `1.2.1`** · 2026-10-01
 
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
@@ -24,9 +24,6 @@ DevFlow turns a dsh session into a small delivery organisation with a visible co
 
 ## Install (one command)
 
-> The repository is **private** at the moment, so the command below needs your Git credentials.
-> Once it is public, anyone can run it as-is.
-
 **Windows (PowerShell)** — copy this single line:
 
 ```powershell
@@ -46,7 +43,7 @@ Useful switches:
 .\install.ps1 -SkipPreset
 
 # install a specific tag/branch
-.\install.ps1 -Ref 'v1.2.0'
+.\install.ps1 -Ref 'v1.2.1'
 ```
 
 ## What the installer actually changes
@@ -61,7 +58,9 @@ It touches **exactly five things**, and backs up every file it rewrites:
 4. **Links dependencies** — runs `pnpm install` inside the profile so the `link:` symlink really exists.
 5. **Deploys the agent preset — both forms, because the two dsh generations read different ones** —
    * **legacy (dsh `0.1.5`)**: copies `presets/devflow/{agent.cordis.yml, preset.yml}` to `~/.dsh/.agent-presets/devflow/`, rewriting the activation row from the checkout-relative path to an absolute `file:///.../lib/host/preset-activation.js?rev=<sha>` URL;
-   * **declaration (dsh `0.1.7+`)**: rewrites the path in this plugin's own `cordis.patch.yml` `preset-devflow` declaration row to the same absolute URL. `0.1.7` no longer reads `~/.dsh/.agent-presets` at all, while `0.1.5` merely marks the unknown declaration as broken instead of failing the host — which is why one artifact can serve both.
+   * **declaration (dsh `0.1.7+`)**: rewrites the path in this plugin's own `cordis.patch.yml` `preset-devflow` declaration row to the same absolute URL **and flips that row's `disabled` to `false`**. The row ships **`disabled: true`** on purpose: `0.1.5`'s loader **hard-fails** on a loader entry it cannot resolve (`failed to import loader entry preset-devflow (@deepseek-ai/dsh-agent-preset): Cannot find package …`), so only a disabled row can ship in one artifact that serves both generations. `0.1.7+` no longer reads `~/.dsh/.agent-presets` at all, which is why the installer enables the declaration for it.
+
+   The target version is decided by **detection, in this order**: `-DshVersion` → **the running dsh host** (its process working directory is read; no admin rights, no unsigned binaries — filtered by `DSH_HOME`) → the `dsh` command on `PATH` → the profile's `@deepseek-ai/dsh` symlink. It always prints the **detection source path** and warns when the profile's symlink and the running host disagree; `-PresetDeclaration on|off` overrides.
 
    `-DryRun` writes **nothing** (it reports which files it would touch).
 

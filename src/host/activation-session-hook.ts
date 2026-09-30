@@ -34,6 +34,16 @@
  * A per-Agent lease Map plus an in-flight guard backs that up: whichever mode
  * resolves, an Agent that already holds a lease is never activated a second time.
  *
+ * ## The reversal edge (added 2026-10-01)
+ *
+ * Installing on `agent/created` is only half the lifecycle: a session may switch
+ * preset while it is still blank, and `agent/disposed` never fires for that. The
+ * measured consequence was a session that read `标准模式` while still running the
+ * Commander persona and its deny-guard. The hook therefore also listens for the
+ * preset registry's `agent-preset/selected` signal — switching away releases the
+ * lease, switching back re-installs — and re-evaluates the per-Agent DevFlow
+ * capability scope on the same edge.
+ *
  * @module @xiaoxie-ide/dsh-devflow/activation-session-hook
  */
 
@@ -45,9 +55,14 @@ import {
   type DevFlowActivationLease,
   type DevFlowActivationProvider,
 } from './preset-activation.ts'
+import {
+  DEVFLOW_CAPABILITY_PRESET_ID,
+  DEVFLOW_TOOL_NAMES,
+  shouldHideDevFlowTools,
+} from './capability-scope.ts'
 
 /** The one preset id this fallback will activate. */
-const DEVFLOW_PRESET_ID = 'devflow'
+const DEVFLOW_PRESET_ID = DEVFLOW_CAPABILITY_PRESET_ID
 
 /**
  * Where the per-Agent activation decision comes from.
@@ -108,7 +123,7 @@ export function hostDrivesPerAgentActivation(service: unknown): boolean {
 
 /** Attach-once surface, kept tiny so the host bundle stays readable. */
 export interface DevFlowSessionActivationHook {
-  /** Subscribe the two Agent lifecycle edges. Idempotent. */
+  /** Subscribe the Agent lifecycle and preset-change edges. Idempotent. */
   attach(ctx: Context): void
   /**
    * Resolve once every in-flight activation and teardown has settled.
@@ -121,6 +136,8 @@ export interface DevFlowSessionActivationHook {
   settled(): Promise<void>
   /** How many Agents currently hold a live lease (diagnostics and tests). */
   readonly liveCount: number
+  /** How many Agents currently carry a DevFlow-capability hide (diagnostics and tests). */
+  readonly scopedCount: number
   /** The mode in force right now (re-read per edge in `auto`). */
   readonly mode: DevFlowResolvedActivationMode
   /** Subscribe to mode changes (diagnostics and tests). */
@@ -159,6 +176,19 @@ export function createDevFlowSessionActivation(
   mode: DevFlowSessionActivationMode = 'auto',
 ): DevFlowSessionActivationHook {
   const leases = new Map<string, DevFlowActivationLease>()
+  /**
+   * Per-Agent DevFlow-capability visibility restrictions.
+   *
+   * Separate from {@link leases} on purpose. A lease is the installed Commander
+   * (persona + guard + tool narrowing) and only exists in `host` mode; the
+   * restriction is "this Agent may not even SEE the `devflow_*` family" and
+   * applies under BOTH activation mechanisms, because the family is registered by
+   * the host bundle regardless of who drives activation. Owning both here keeps
+   * one place that answers "what DevFlow state does this Agent hold right now".
+   */
+  const scopes = new Map<string, () => void>()
+  /** The host context, captured on attach so a preset edge can resolve its Agent. */
+  let host: Context | undefined
   /**
    * Agents whose activation is currently in flight.
    *
@@ -219,9 +249,89 @@ export function createDevFlowSessionActivation(
     }
   }
 
+  /**
+   * Release one Agent's activation lease, exactly once.
+   *
+   * Shared by the disposal edge and the preset-change edge so both reverse the
+   * SAME installation through the SAME path — the reversal is the lease's own
+   * `deactivate()` (persona + execution guard + tool narrowing), and it must not
+   * be re-entered by a second edge for the same Agent. The map entry is dropped
+   * BEFORE awaiting.
+   * @param key - the Agent identity holding the lease.
+   */
+  const releaseLease = (key: string): void => {
+    const lease = leases.get(key)
+    if (lease === undefined) return
+    leases.delete(key)
+    void track((async () => {
+      try {
+        await lease.deactivate()
+      } catch (error) {
+        // A failed teardown must never block the caller (disposal, or a preset
+        // switch); it is a warning because throwing would turn a cleanup problem
+        // into a broken session.
+        warn(`devflow: session activation teardown failed for ${key}: ${describe(error)}`)
+      }
+    })())
+  }
+
+  /**
+   * Re-evaluate one Agent's DevFlow-capability visibility.
+   *
+   * Hides the `devflow_*` family from an Agent that is not a live DevFlow
+   * session, and lifts the hide again when it becomes one. Idempotent by
+   * construction: the installed state is compared with the wanted state, so
+   * repeated edges never stack restrictions.
+   * @param agent - the Agent whose model-facing surface is being scoped.
+   */
+  const syncCapabilityScope = (agent: Agent): void => {
+    const key = String(agent.id)
+    const installed = scopes.get(key)
+    const shouldHide = shouldHideDevFlowTools(agent)
+    if (shouldHide === (installed !== undefined)) return
+    if (!shouldHide) {
+      scopes.delete(key)
+      try {
+        installed?.()
+      } catch (error) {
+        warn(`devflow: capability scope release failed for ${key}: ${describe(error)}`)
+      }
+      return
+    }
+    try {
+      // Intersect with what this Agent can actually see: `restrict()` refuses an
+      // unknown global name, and an Agent whose surface was already narrowed by
+      // its dispatch filter needs no second restriction for names it cannot see.
+      const present = new Set(agent.ctx.tools.schemas(agent).map(tool => tool.name))
+      const deny = DEVFLOW_TOOL_NAMES.filter(name => present.has(name))
+      if (deny.length === 0) return
+      scopes.set(key, agent.ctx.tools.restrict({ deny: [...deny] }))
+    } catch (error) {
+      // Hiding is an optimization ON TOP of the execution guard, so a refusal
+      // here must not break the Agent: the guard still denies every call.
+      warn(`devflow: capability scoping failed for ${key}: ${describe(error)}`)
+    }
+  }
+
+  /** Resolve one Agent by its session identity, when the host exposes a registry. */
+  const agentById = (sessionId: string): Agent | undefined => {
+    if (host === undefined) return undefined
+    try {
+      const agents = (host as unknown as { get(name: string): unknown }).get('agents') as
+        { get?: (id: string) => Agent | undefined } | undefined
+      return agents?.get?.(sessionId)
+    } catch {
+      return undefined
+    }
+  }
+
   const onAgentCreated = (payload: unknown): void => {
     const agent = (payload as { agent?: Agent } | undefined)?.agent
     if (agent === undefined) return
+    // Capability scoping is host-independent: the tool family is registered by
+    // this bundle for every composition, so the surface is narrowed here for
+    // BOTH activation mechanisms.
+    syncCapabilityScope(agent)
     const resolved = resolveActivationMode(mode, deps.presetService)
     noteMode(resolved)
     // The yield: a live preset row means the Harness drives `activate()` for this
@@ -234,29 +344,69 @@ export function createDevFlowSessionActivation(
     const agent = (payload as { agent?: Agent } | undefined)?.agent
     if (agent === undefined) return
     const key = String(agent.id)
-    const lease = leases.get(key)
-    if (lease === undefined) return
-    // Drop the entry BEFORE awaiting: teardown is best-effort and must never be
-    // re-entered by a second disposal edge.
-    leases.delete(key)
-    void track((async () => {
+    const release = scopes.get(key)
+    if (release !== undefined) {
+      scopes.delete(key)
       try {
-        await lease.deactivate()
+        release()
       } catch (error) {
-        // A failed teardown must never block Agent disposal; it is a warning
-        // because throwing into the disposal path would turn a cleanup problem
-        // into a broken shutdown.
-        warn(`devflow: session activation teardown failed for ${key}: ${describe(error)}`)
+        warn(`devflow: capability scope release failed for ${key}: ${describe(error)}`)
       }
-    })())
+    }
+    releaseLease(key)
+  }
+
+  /**
+   * One session's preset changed while it was still blank.
+   *
+   * This is the edge the fallback was missing. 2026-10-01 measured the failure it
+   * removes: a session created on `devflow` and switched to `standard` kept the
+   * Commander persona AND the deny-guard installed, because installation happened
+   * on `agent/created` and only `agent/disposed` ever reversed it — the session
+   * read `标准模式` while it still ran DevFlow (`probe-leak-switch.jsonl`,
+   * `AFTER-SWITCH`: `composedPreset: "standard"` with
+   * `commanderMode: "commander"` and `pwshGuardDenial: true`).
+   *
+   * The preset registry emits this from its own `session/event` listener AFTER the
+   * recompose committed (`Harness-017
+   * packages/preset/agent-preset-registry/src/index.ts:68-70`, and `select()`
+   * recomposes before it appends at `:325-326`), so every read below already sees
+   * the NEW composition.
+   * @param sessionId - the session whose preset moved.
+   * @param agentPreset - the preset it moved to.
+   */
+  const onPresetSelected = (sessionId: unknown, agentPreset: unknown): void => {
+    const key = typeof sessionId === 'string' ? sessionId : ''
+    if (key === '') return
+    const agent = agentById(key)
+    if (agent !== undefined) syncCapabilityScope(agent)
+    const resolved = resolveActivationMode(mode, deps.presetService)
+    noteMode(resolved)
+    // Same yield as `agent/created`: on a host that drives activation itself, the
+    // roster owns both the installation and its reversal.
+    if (resolved !== 'host') return
+    if (agentPreset === DEVFLOW_PRESET_ID) {
+      // Switching BACK must re-install; `activateOne` is a no-op when this Agent
+      // already holds a lease or one is in flight.
+      if (agent !== undefined) void track(activateOne(agent, key))
+      return
+    }
+    releaseLease(key)
   }
 
   return {
     attach(ctx: Context): void {
       if (attached) return
       attached = true
+      host = ctx
       ctx.on('agent/created', onAgentCreated)
       ctx.on('agent/disposed', onAgentDisposed)
+      // The third edge. Typed defensively because the name is the preset
+      // registry's own ctx-level signal rather than a member of this dependency
+      // snapshot's cordis `Events` map; the listener itself needs no payload
+      // typing beyond the two positional values the registry emits.
+      ;(ctx as unknown as { on(name: string, listener: (...args: unknown[]) => void): unknown })
+        .on('agent-preset/selected', onPresetSelected)
       noteMode(resolveActivationMode(mode, deps.presetService))
     },
     async settled(): Promise<void> {
@@ -269,6 +419,9 @@ export function createDevFlowSessionActivation(
     },
     get liveCount(): number {
       return leases.size
+    },
+    get scopedCount(): number {
+      return scopes.size
     },
     get mode(): DevFlowResolvedActivationMode {
       return resolveActivationMode(mode, deps.presetService)

@@ -11,14 +11,16 @@
 
 import { describe, expect, it } from 'vitest'
 import { existsSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import {
   devFlowActivationRow, apply as rowApply, name as rowName,
 } from '../src/host/preset-activation.ts'
 
 const HOST_UNAVAILABLE = 'devflow: preset activation requires the DevFlow host controller (devflow service)'
-const BUILT_ROW = 'D:/Deepseek/DevFlow/lib/host/preset-activation.js'
+/** This checkout's built row module, derived from the test file's own location. */
+const BUILT_ROW = join(resolve(dirname(fileURLToPath(import.meta.url)), '..'), 'lib', 'host', 'preset-activation.js')
 
 interface GlobalImpl {
   readonly name: string

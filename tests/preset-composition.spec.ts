@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-const PRESETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'presets', 'devflow')
+import { fileURLToPath, pathToFileURL } from 'node:url'
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const PRESETS = join(REPO_ROOT, 'presets', 'devflow')
+/**
+ * The harness-home copy the installer deploys on this machine, derived from the
+ * home directory rather than hardcoded: the assertion below is about the
+ * relationship between the two copies, not about where the checkout lives.
+ * Absent on a machine that never installed DevFlow, in which case the case
+ * skips itself (see the `text === undefined` guard).
+ */
+const DEPLOYED_PRESET = join(homedir(), '.dsh', '.agent-presets', 'devflow', 'agent.cordis.yml')
+/** This checkout's built activation module, in the URL form the row carries. */
+const REPO_ACTIVATION_MODULE = pathToFileURL(join(REPO_ROOT, 'lib', 'host', 'preset-activation.js')).href
 
 /** Drop comment lines so assertions target the actual YAML rows only. */
 function rowsOf(text: string): string {
@@ -73,8 +85,7 @@ describe('the devflow agent preset composition', () => {
   })
 
   it('ships the same rows in the deployed harness-home copy', async () => {
-    const deployed = 'C:\\Users\\xiebin\\.dsh\\.agent-presets\\devflow\\agent.cordis.yml'
-    const text = await readFile(deployed, 'utf8').catch(() => undefined)
+    const text = await readFile(DEPLOYED_PRESET, 'utf8').catch(() => undefined)
     if (text === undefined) return
     const repository = await readFile(join(PRESETS, 'agent.cordis.yml'), 'utf8')
     expect(rowIds(text)).toEqual(rowIds(repository))
@@ -87,7 +98,7 @@ describe('the devflow agent preset composition', () => {
     const deployedName = /name:\s*'([^']+)'/.exec(text)?.[1] ?? ''
     expect(deployedName).toMatch(/\?rev=[A-Za-z0-9._-]+$/)
     expect(fileURLToPath(deployedName).replaceAll('\\', '/'))
-      .toBe('D:/Deepseek/DevFlow/lib/host/preset-activation.js')
+      .toBe(fileURLToPath(REPO_ACTIVATION_MODULE).replaceAll('\\', '/'))
     expect(text).toContain('agentPresetActivation: true')
   })
 })

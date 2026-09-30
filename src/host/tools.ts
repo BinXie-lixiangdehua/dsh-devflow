@@ -34,6 +34,7 @@ import { blockedReportFrom, capabilityBreaker, declaredOutcome } from './blocked
 import { blockedReportsForTask } from './projection.ts'
 import type { AgentInstance, OrchestrationAgent } from './types.ts'
 import { DEVFLOW_CONCURRENCY_LIMIT } from '../contract.ts'
+import { devflowCapabilityDenialReason } from './capability-scope.ts'
 const ASSIGNED_ROLES: readonly AssignedRole[] = ['planner', 'backend-engineer', 'frontend-engineer', 'reviewer']
 const TASK_STATUSES: readonly TaskStatus[] = ['created', 'planned', 'executing', 'reviewing', 'completed', 'failed', 'cancelled']
 const REPORT_SUMMARY_LIMIT = 500
@@ -2083,4 +2084,13 @@ export function registerDevFlowTools(ctx: Context, services: DevFlowToolServices
     presentCall: args => ({ card: 'generic', title: 'Upsert DevFlow agent', kind: 'other', rawInput: args }),
     presentResult: (_args, result) => ({ card: 'generic', title: 'DevFlow agent saved', content: result.content }),
   }))
+
+  // ── The family's execution boundary ────────────────────────────────────────
+  // Registered on the HOST context, so this one guard covers every Agent in the
+  // deployment — including Agents whose scope registered a `devflow_*` name some
+  // other way. `tools.restrict()` cannot serve here: it filters only what a scope
+  // INHERITS, while a scope's own registrations stay visible unconditionally, and
+  // a call that never runs is the only guarantee that a non-DevFlow session (or a
+  // dispatched employee, 红线 3) cannot drive DevFlow orchestration.
+  ctx.tools.guard(execution => devflowCapabilityDenialReason(execution))
 }

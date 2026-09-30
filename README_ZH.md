@@ -1,6 +1,6 @@
 # DevFlow
 
-**版本 `1.2.0`** · 2026-09-25
+**版本 `1.2.1`** · 2026-10-01
 
 面向 **[DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)** 的**多 Agent 工作流编排插件**。
 
@@ -24,8 +24,6 @@
 
 ## 一键安装
 
-> 仓库**当前为私有** —— 下面这条命令需要你的 Git 凭据。**公开之后任何人可直接执行。**
-
 **Windows（PowerShell）**，复制这一行：
 
 ```powershell
@@ -38,7 +36,7 @@ git clone https://github.com/BinXie-lixiangdehua/dsh-devflow.git "$env:USERPROFI
 .\install.ps1 -DryRun                 # 只打印将要做什么，不写任何文件
 .\install.ps1 -DshHome 'C:\Users\me\.dsh' -Profile 'web'
 .\install.ps1 -SkipPreset             # 不部署 preset（只装插件本体）
-.\install.ps1 -Ref 'v1.2.0'           # 安装指定 tag / 分支
+.\install.ps1 -Ref 'v1.2.1'           # 安装指定 tag / 分支
 ```
 
 ## 安装脚本到底改了什么
@@ -51,7 +49,9 @@ git clone https://github.com/BinXie-lixiangdehua/dsh-devflow.git "$env:USERPROFI
 4. **建立 link**：在 profile 里跑一次 `pnpm install`，让 `link:` 符号链接真正生效。
 5. **部署 agent preset（双形态，两代 dsh 各读一种）**：
    - **旧形态（dsh `0.1.5`）**：把 `presets/devflow/{agent.cordis.yml, preset.yml}` 拷到 `~/.dsh/.agent-presets/devflow/`，并把第 1 行的激活路径从"相对检出路径"改写为绝对 `file:///.../lib/host/preset-activation.js?rev=<sha>`；
-   - **新形态（dsh `0.1.7+`）**：把本插件自带 `cordis.patch.yml` 里 `preset-devflow` **声明行**的路径**幂等改写**为同一个绝对 URL。`0.1.7` 起**完全不读** `~/.dsh/.agent-presets`；而 `0.1.5` 遇到解析不到的声明包只会把该预设记为 broken，**不会让宿主启动失败** —— 所以同一份产物能同时服务两代。
+   - **新形态（dsh `0.1.7+`）**：把本插件自带 `cordis.patch.yml` 里 `preset-devflow` **声明行**的路径**幂等改写**为同一个绝对 URL，**并把该行的 `disabled` 改成 `false`**。出厂时该行**刻意保持 `disabled: true`** —— `0.1.5` 的加载器对**解析不到的 loader entry 会硬失败**（`failed to import loader entry preset-devflow (@deepseek-ai/dsh-agent-preset): Cannot find package …`），所以只有"出厂禁用"的一份产物才能同时服务两代；`0.1.7+` 起**完全不读** `~/.dsh/.agent-presets`，因此由安装器为它启用声明行。
+
+   目标版本靠**探测**决定，顺序为：`-DshVersion` → **运行中的 dsh 宿主**（读其进程工作目录；不需要管理员权限、不引入未签名二进制；并按 `DSH_HOME` 过滤）→ `PATH` 上的 `dsh` 命令 → profile 的 `@deepseek-ai/dsh` 软链。安装器**总会打印探测来源路径**，并在「profile 软链」与「运行中的宿主」不一致时给出警告；可用 `-PresetDeclaration on|off` 显式覆盖。
 
    `-DryRun` **不写任何文件**（只报告将会改动哪一个）。
 
