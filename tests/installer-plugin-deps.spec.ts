@@ -21,28 +21,30 @@
  * @module tests/installer-plugin-deps.spec
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { describeCandidates, installerCandidates, readInstallerCandidate } from './support/installer-candidates.ts'
 
 /**
- * 安装器有两个发布副本：插件仓库（`src` 源头）与发布副本 `DevFlow-dist`。
- * 本轮改动必须在两边一致，否则「源码对了、装上的是旧的」。
+ * 安装器的两个可能位置：**本仓库自身**（第一来源 ＝ 产品真值）与发布副本
+ * `DevFlow-dist`（可选第二来源）。非作者机器上两份都可能不存在 —— 那是
+ * **环境缺失**，不是安装器坏了 ⇒ 用例跳过，而不是失败。候选链与语义集中在
+ * `./support/installer-candidates.ts`，与 `preset-dual-form.spec.ts` **同源**。
  */
-const INSTALLER_CANDIDATES = [
-  'D:/Deepseek/DevFlow-dist/install.ps1',
-] as const
+const installer = readInstallerCandidate()
 
-/** 读第一份存在的安装器；都没有就让用例显式失败，而不是悄悄跳过。 */
-function readInstaller(): { path: string, text: string } {
-  for (const path of INSTALLER_CANDIDATES) {
-    try {
-      return { path, text: readFileSync(path, 'utf8') }
-    } catch {
-      // 换下一个候选
-    }
-  }
-  throw new Error(`找不到 install.ps1（试过：${INSTALLER_CANDIDATES.join(', ')}）`)
-}
+/**
+ * 跳过理由；`false` 表示候选可读、断言照常执行。
+ * 这条只会是「没有任何可读候选」（环境缺失），**永远不会**是「用例失败被吞掉」。
+ */
+const installerMissing: string | false = installer === undefined
+  ? `找不到 install.ps1（${describeCandidates(installerCandidates())}）`
+  : false
+
+/**
+ * 安装器正文。候选缺失时上面已把整组用例跳过，这里只是类型收敛；
+ * 候选可读时它就是那份**真实**正文，断言逐条照旧。
+ */
+const installerText = installer?.text ?? ''
 
 /** 用 PowerShell 自己的解析器解析；返回语句数，不可用时返回 undefined（调用方跳过）。 */
 function parseStatementCount(path: string): number | undefined {
@@ -72,44 +74,42 @@ function parseStatementCount(path: string): number | undefined {
   return undefined
 }
 
-const installer = readInstaller()
-
 /** 断言：文本包含某片段（失败信息带上下文，便于定位）。 */
 function expectContains(haystack: string, needle: string): void {
   expect(haystack.includes(needle), `安装器缺少片段：${needle}`).toBe(true)
 }
 
-describe('安装器：必须装插件自身依赖（P0-1）', () => {
+describe.skipIf(installerMissing)('安装器：必须装插件自身依赖（P0-1）', () => {
   it('依赖探测针对 ESM 解析真正需要的包（@deepseek-ai/cordis）', () => {
     // 该包正是第十八步实测报错里找不到的那个；探测别的包会漏判。
-    expectContains(installer.text, String.raw`node_modules\@deepseek-ai\cordis\package.json`)
+    expectContains(installerText, String.raw`node_modules\@deepseek-ai\cordis\package.json`)
   })
 
   it('缺 pnpm 且依赖未就位时抛错，并在消息里给出 ERR_MODULE_NOT_FOUND 与可操作命令', () => {
-    expectContains(installer.text, 'ERR_MODULE_NOT_FOUND')
-    expectContains(installer.text, 'pnpm install --dir')
+    expectContains(installerText, 'ERR_MODULE_NOT_FOUND')
+    expectContains(installerText, 'pnpm install --dir')
     // 必须 throw（响亮失败），不能只 Say 一句黄字就继续。
-    expectContains(installer.text, 'throw "插件自身依赖未安装，且本机找不到 pnpm。')
+    expectContains(installerText, 'throw "插件自身依赖未安装，且本机找不到 pnpm。')
   })
 
   it('pnpm 失败要抛错，而不是只打一行警告', () => {
-    expectContains(installer.text, 'throw "插件自身依赖安装失败（pnpm install 退出码')
+    expectContains(installerText, 'throw "插件自身依赖安装失败（pnpm install 退出码')
   })
 
   it('装完还要复验一次（pnpm 返回 0 但依赖仍缺 ⇒ 抛错）', () => {
-    expectContains(installer.text, 'throw "pnpm install 成功但依赖仍未就位')
+    expectContains(installerText, 'throw "pnpm install 成功但依赖仍未就位')
   })
 
   it('对**插件安装目录**执行（--dir $InstallDir），而不是只对 profile', () => {
-    expectContains(installer.text, 'pnpm install --dir $InstallDir')
-    expectContains(installer.text, 'pnpm install --dir $ProfileDir')
+    expectContains(installerText, 'pnpm install --dir $InstallDir')
+    expectContains(installerText, 'pnpm install --dir $ProfileDir')
   })
 })
 
-describe('安装器：步骤顺序与计数', () => {
+describe.skipIf(installerMissing)('安装器：步骤顺序与计数', () => {
   it('依赖安装早于 profile 改写（否则会「profile 已改、插件不可用」）', () => {
-    const depsStep = installer.text.indexOf(`Step '2/5 装插件自身依赖'`)
-    const profileStep = installer.text.indexOf(`Step '3/5 注册 profile bundle'`)
+    const depsStep = installerText.indexOf(`Step '2/5 装插件自身依赖'`)
+    const profileStep = installerText.indexOf(`Step '3/5 注册 profile bundle'`)
     expect(depsStep, '缺 2/5 装插件自身依赖 步骤').toBeGreaterThan(-1)
     expect(profileStep, '缺 3/5 注册 profile bundle 步骤').toBeGreaterThan(-1)
     expect(depsStep < profileStep, '依赖安装必须早于 profile 改写').toBe(true)
@@ -125,29 +125,29 @@ describe('安装器：步骤顺序与计数', () => {
     ]
     let cursor = -1
     for (const step of order) {
-      const at = installer.text.indexOf(step)
+      const at = installerText.indexOf(step)
       expect(at, `缺步骤或顺序不对：${step}`).toBeGreaterThan(cursor)
       cursor = at
     }
   })
 
   it('新开关 -SkipPluginDeps 已声明（跳过时要明确提示，不静默）', () => {
-    expectContains(installer.text, '[switch]$SkipPluginDeps')
-    expectContains(installer.text, '已按 -SkipPluginDeps 跳过')
+    expectContains(installerText, '[switch]$SkipPluginDeps')
+    expectContains(installerText, '已按 -SkipPluginDeps 跳过')
   })
 })
 
-describe('安装器：双形态预设部署', () => {
+describe.skipIf(installerMissing)('安装器：双形态预设部署', () => {
   it('旧形态两个文件仍整份部署（旧版不回归）', () => {
-    expectContains(installer.text, `foreach ($f in @('agent.cordis.yml', 'preset.yml'))`)
+    expectContains(installerText, `foreach ($f in @('agent.cordis.yml', 'preset.yml'))`)
   })
 
   it('新形态声明行会被启用并改写为绝对 file:// URL（含 ?rev）', () => {
     // 相对路径在插件 bundle 加载期会按当前工作目录解析，不可靠 ⇒ 安装目录里必须是绝对 URL。
-    expectContains(installer.text, `file:///\\S*preset-activation\\.js`)
+    expectContains(installerText, `file:///\\S*preset-activation\\.js`)
     // 名称行被就地替换为绝对 URL（$1 保留缩进）。
-    expectContains(installer.text, `Regex]::Replace($pText, $pRe, "\`$1name: '" + $url + "'")`)
-    expectContains(installer.text, 'Enable-PresetDeclaration')
+    expectContains(installerText, `Regex]::Replace($pText, $pRe, "\`$1name: '" + $url + "'")`)
+    expectContains(installerText, 'Enable-PresetDeclaration')
   })
 
   it('只对 dsh >= 0.1.7 启用声明 —— 0.1.5 会在未解析 entry 上**硬失败**', () => {
@@ -155,37 +155,40 @@ describe('安装器：双形态预设部署', () => {
     //   dsh: plugin tree failed to load: failed to import loader entry preset-devflow
     //   (@deepseek-ai/dsh-agent-preset): Cannot find package ...
     // ⇒ 必须按版本判定，并给出 -PresetDeclaration on/off 的人工兜底。
-    expectContains(installer.text, 'Test-DeclarationSupported')
-    expectContains(installer.text, "Test-DshAtLeast $Version 0 1 7")
-    expectContains(installer.text, '$PresetDeclaration')
-    expectContains(installer.text, '新形态保持禁用，只用旧形态（目录式）')
+    expectContains(installerText, 'Test-DeclarationSupported')
+    expectContains(installerText, "Test-DshAtLeast $Version 0 1 7")
+    expectContains(installerText, '$PresetDeclaration')
+    expectContains(installerText, '新形态保持禁用，只用旧形态（目录式）')
   })
 
   it('-DshVersion 可显式给出宿主版本（探不到时的人工兜底）', () => {
-    expectContains(installer.text, '[string]$DshVersion')
-    expectContains(installer.text, 'Get-DshVersion $ProfileDir $DshVersion')
+    expectContains(installerText, '[string]$DshVersion')
+    // 探针函数把该开关作为第 2 个参数（$Explicit）收到 —— 断言的是这条**真实存在**的
+    // 调用，而不是一个从未在 install.ps1 里出现过的函数名（`Get-DshVersion` 旧名在
+    // 仓库历史里 0 命中，此前只因候选链读到旧的 DevFlow-dist 副本才「看着是绿的」）。
+    expectContains(installerText, 'Get-DshProbe $ProfileDir $DshVersion')
   })
   it('启用时同时做两件事：写绝对 URL + 把 disabled 改成 false', () => {
     // 0.1.5 的加载器只容忍 **disabled** 的未解析行（app-boot/src/index.ts:683），
     // 所以「启用」必须是「改 disabled」而不是「加行」。
-    expectContains(installer.text, 'Enable-PresetDeclaration $pOut')
-    expectContains(installer.text, 'function Enable-PresetDeclaration')
+    expectContains(installerText, 'Enable-PresetDeclaration $pOut')
+    expectContains(installerText, 'function Enable-PresetDeclaration')
     // 关键：把 `disabled: true` 就地改成 `disabled: false`。
-    expectContains(installer.text, `$Matches[1] + 'false'`)
+    expectContains(installerText, `$Matches[1] + 'false'`)
   })
 
   it('DryRun 绝不写任何文件（只报告将改动哪一个）', () => {
-    expectContains(installer.text, '（DryRun：将启用新形态预设声明于')
+    expectContains(installerText, '（DryRun：将启用新形态预设声明于')
     // 写入必须只在非 DryRun 分支里发生。
-    const dryRunGuard = installer.text.indexOf('（DryRun：将启用新形态预设声明于')
-    const writeCall = installer.text.indexOf('WriteText $patchWrite $pOut')
+    const dryRunGuard = installerText.indexOf('（DryRun：将启用新形态预设声明于')
+    const writeCall = installerText.indexOf('WriteText $patchWrite $pOut')
     expect(dryRunGuard).toBeGreaterThan(-1)
     expect(writeCall).toBeGreaterThan(dryRunGuard)
   })
 })
 
-describe('安装器：PowerShell 解析器接受（结构断言）', () => {
-  const statements = parseStatementCount(installer.path)
+describe.skipIf(installerMissing)('安装器：PowerShell 解析器接受（结构断言）', () => {
+  const statements = installer === undefined ? undefined : parseStatementCount(installer.path)
 
   it('AST 可解析且语句数合理（BOM/引号/中文都不会破）', () => {
     if (statements === undefined) {

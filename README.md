@@ -1,6 +1,6 @@
 # DevFlow
 
-**Version `1.2.1`** · 2026-10-01
+**Version `1.3.0`** · 2026-10-06
 
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
@@ -19,7 +19,7 @@ DevFlow turns a dsh session into a small delivery organisation with a visible co
 |---|---|
 | Node | `^22.19.0` or `>=24` |
 | pnpm | any recent version |
-| dsh | installed, with a profile you can edit (e.g. `~/.dsh/profiles/web`) |
+| dsh | installed, with a profile you can edit (e.g. `~/.dsh/profiles/web`) · target range `>=0.1.5-rc.2 <0.3.0` |
 | OS | Windows is the tested platform (the preset wires `tool-pwsh` on win32 / `tool-bash` elsewhere) |
 
 ## Install (one command)
@@ -43,7 +43,7 @@ Useful switches:
 .\install.ps1 -SkipPreset
 
 # install a specific tag/branch
-.\install.ps1 -Ref 'v1.2.1'
+.\install.ps1 -Ref 'v1.3.0'
 ```
 
 ## What the installer actually changes

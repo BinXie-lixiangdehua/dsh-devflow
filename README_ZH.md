@@ -1,6 +1,6 @@
 # DevFlow
 
-**版本 `1.2.1`** · 2026-10-01
+**版本 `1.3.0`** · 2026-10-06
 
 面向 **[DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)** 的**多 Agent 工作流编排插件**。
 
@@ -19,7 +19,7 @@
 |---|---|
 | Node | `^22.19.0` 或 `>=24` |
 | pnpm | 任意较新版本 |
-| dsh | 已安装，且有一个可编辑的 profile（如 `~/.dsh/profiles/web`） |
+| dsh | 已安装，且有一个可编辑的 profile（如 `~/.dsh/profiles/web`）· 目标区间 `>=0.1.5-rc.2 <0.3.0` |
 | 系统 | **Windows 为实测平台**（preset 在 win32 接 `tool-pwsh`，其他平台接 `tool-bash`） |
 
 ## 一键安装
@@ -36,7 +36,7 @@ git clone https://github.com/BinXie-lixiangdehua/dsh-devflow.git "$env:USERPROFI
 .\install.ps1 -DryRun                 # 只打印将要做什么，不写任何文件
 .\install.ps1 -DshHome 'C:\Users\me\.dsh' -Profile 'web'
 .\install.ps1 -SkipPreset             # 不部署 preset（只装插件本体）
-.\install.ps1 -Ref 'v1.2.1'           # 安装指定 tag / 分支
+.\install.ps1 -Ref 'v1.3.0'           # 安装指定 tag / 分支
 ```
 
 ## 安装脚本到底改了什么

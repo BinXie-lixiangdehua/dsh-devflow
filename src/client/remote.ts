@@ -27,7 +27,14 @@ import {
   DEVFLOW_CLIENT_EVENT_CHANGE_LIMIT,
   DEVFLOW_CLIENT_EVENT_PATH_LIMIT,
 } from '../contract.ts'
-import type { RemoteResult, TypertRemoteContribution, TypertRemoteScopeApi } from '@deepseek-ai/dsh-typert-protocol'
+import type {
+  InvocationParameterDescriptor,
+  RemoteResult,
+  TypertCodec,
+  TypertRemoteContribution,
+  TypertRemoteScopeApi,
+  TypertSchema,
+} from '@deepseek-ai/dsh-typert-protocol'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   // A stream Remote yields its frames directly. The generator emits exactly this
@@ -68,9 +75,60 @@ export interface TypertRemoteNamespace {
 
 export type DevFlowRemote = TypertRemoteScopeApi<'agent'>['devflow']
 
-const agentParameter = {
-  name: 'agent', wire: 'agentId', source: 'lookup' as const, lookup: 'agent',
-  codec: { mode: 'strict' as const, typeSymbol: 'session-id', schema: { parse: (value: unknown) => requireString(value, 'session id') } },
+/**
+ * The codec form this bridge must declare, and why.
+ *
+ * 2026-10-05 (0.2.0 界面取数修复): these descriptors used to declare
+ * `{ mode: 'strict', typeSymbol, schema: { parse } }`. That is not a valid
+ * `TypertCodec`: the `strict` variant requires **`create: () => TypertSchema`**
+ * (`@deepseek-ai/dsh-typert-protocol/src/types.ts`), and dsh 0.2.0 enforces it in
+ * two places at mount time —
+ *   * the client registry's `validateCodec()` rejects a result codec without
+ *     `create` (`strict codec has no create() factory`), and
+ *   * the gateway client's `requireStrictInputs()` rejects any **input**
+ *     parameter whose codec is not `strict` at all
+ *     (`generated Remote … field "…" has no strict codec`).
+ * Both threw inside `ctx.remote.$mount(DEVFLOW_REMOTE)`, so the mount rejected,
+ * `remoteReady` stayed false, `remoteFor()` answered `undefined` for every
+ * session, and the canvas failed closed **without emitting a single `devflow/*`
+ * frame** — the "2152 frames, zero devflow calls" symptom.
+ *
+ * Note what `create()` is used for: the gateway's `decode()` calls
+ * `codec.create().parse(value)` on a **strict** codec, i.e. it validates the
+ * *wire input* through the process-realm schema. Results are delivered as plain
+ * JSON and are re-validated by this module's own parsers in `store.ts`
+ * (`parseDevFlowResponse` / `parseDevFlowAuditResponse` / `parseDevFlowEvent`),
+ * so a result codec does not need a schema — `src-json` is the protocol's own
+ * variant for exactly that, and `validateCodec` returns early for it.
+ *
+ * `TypertSchema` is a one-method interface (`parse(value): Output`), so the
+ * inputs keep the very same validators they always had; they are now reachable
+ * through `create()` instead of being declared in a field the host discarded.
+ * @param parse - the boundary validator for this input.
+ * @returns a strict codec carrying the validator as its materialised schema.
+ */
+const strictInput = (parse: (value: unknown) => unknown): TypertCodec => {
+  // `0.1.5` declares the strict codec's schema as `schema: TypertSchema`, while
+  // `0.1.7`/`0.2.0` replaced that field with `create: () => TypertSchema` and
+  // enforce it (registry `validateCodec` + gateway `requireStrictInputs`). A
+  // single literal cannot satisfy both declarations, so the object carries BOTH
+  // fields: whichever runtime reads the descriptor finds the shape it knows. The
+  // cast is the honest way to say "one object, two published contracts" — the
+  // values are produced by the same validator, so no boundary is validated less.
+  return {
+    mode: 'strict',
+    typeSymbol: 'devflow-client-input',
+    schema: { parse },
+    create: (): TypertSchema => ({ parse }),
+  } as unknown as TypertCodec
+}
+
+/** Codec for a value the carrier hands over as plain JSON and this module re-parses. */
+const srcJson: TypertCodec = { mode: 'src-json' }
+
+const agentParameter: InvocationParameterDescriptor = {
+  name: 'agent', wire: 'agentId', source: 'lookup', lookup: 'agent',
+  codec: strictInput(value => requireString(value, 'agent id')),
 }
 
 /** Client-side Remote contribution for DevFlow's narrow public bridge. */
@@ -82,24 +140,21 @@ export const DEVFLOW_REMOTE: TypertRemoteContribution = {
       service: 'devflowClient', namespace: 'devflow', method: 'snapshot', invocation: { kind: 'direct' },
       scope: { context: 'agent', wire: 'agentId' },
       parameters: [agentParameter],
-      result: { mode: 'strict', typeSymbol: 'devflow-client-snapshot-response', schema: { parse: parseDevFlowResponse } },
+      result: srcJson,
     },
     {
       id: '@xiaoxie-ide/dsh-devflow#devflowClient/refresh',
       service: 'devflowClient', namespace: 'devflow', method: 'refresh', invocation: { kind: 'direct' },
       scope: { context: 'agent', wire: 'agentId' },
       parameters: [agentParameter],
-      result: { mode: 'strict', typeSymbol: 'devflow-client-snapshot-response', schema: { parse: parseDevFlowResponse } },
+      result: srcJson,
     },
     {
       id: '@xiaoxie-ide/dsh-devflow#devflowClient/audit-page',
       service: 'devflowClient', namespace: 'devflow', method: 'audit-page', implementation: 'auditPage', invocation: { kind: 'direct' },
       scope: { context: 'agent', wire: 'agentId' },
-      parameters: [agentParameter, {
-        name: 'query', wire: 'query', source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'devflow-client-audit-query', schema: { parse: parseAuditQuery } },
-      }],
-      result: { mode: 'strict', typeSymbol: 'devflow-client-audit-page-response', schema: { parse: parseDevFlowAuditResponse } },
+      parameters: [agentParameter, { name: 'query', wire: 'query', source: 'json', codec: strictInput(parseAuditQuery) }],
+      result: srcJson,
     },
     {
       // The live channel: one opening snapshot, then coalesced change signals. It is
@@ -108,12 +163,9 @@ export const DEVFLOW_REMOTE: TypertRemoteContribution = {
       id: '@xiaoxie-ide/dsh-devflow#devflowClient/follow',
       service: 'devflowClient', namespace: 'devflow', method: 'follow', mode: 'stream', invocation: { kind: 'direct' },
       scope: { context: 'agent', wire: 'agentId' },
-      parameters: [agentParameter, {
-        name: 'request', wire: 'request', source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'devflow-client-follow-request', schema: { parse: parseFollowRequest } },
-      }],
+      parameters: [agentParameter, { name: 'request', wire: 'request', source: 'json', codec: strictInput(parseFollowRequest) }],
       cancellation: { parameter: 'signal' },
-      result: { mode: 'strict', typeSymbol: 'devflow-client-event', schema: { parse: parseDevFlowEvent } },
+      result: srcJson,
     },
   ],
 }

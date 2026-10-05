@@ -20,12 +20,22 @@
  */
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { describeCandidates, installerCandidates, readInstallerCandidate } from './support/installer-candidates.ts'
 
 const PATCH = new URL('../cordis.patch.yml', import.meta.url)
 const LEGACY_AGENT = new URL('../presets/devflow/agent.cordis.yml', import.meta.url)
 const LEGACY_META = new URL('../presets/devflow/preset.yml', import.meta.url)
-/** 安装器只在发布副本里维护（源码仓库是同步过去的那一份）。 */
-const INSTALLER = 'D:/Deepseek/DevFlow-dist/install.ps1'
+/**
+ * 安装器候选链（**与 `installer-plugin-deps.spec.ts` 同源**，实现在
+ * `./support/installer-candidates.ts`）：第一来源＝**本仓库自身**的
+ * `install.ps1`，发布副本 `DevFlow-dist` 仅为**可选**第二来源。
+ * 两份都不存在 ＝ 环境缺失 ⇒ 相关用例跳过，而不是失败。
+ */
+const installer = readInstallerCandidate()
+const installerMissing: string | false = installer === undefined
+  ? `找不到 install.ps1（${describeCandidates(installerCandidates())}）`
+  : false
+const installerText = installer?.text ?? ''
 
 const DEVFLOW_PRESET_ID = 'devflow'
 /** 激活行在仓库内保持相对写法（安装器会改写成绝对 file:// URL）。 */
@@ -226,12 +236,11 @@ describe('预设双形态：新形态声明与旧形态逐条一致', () => {
     expect(declared.disabled).toBe(true)
   })
 
-  it('安装器只在 dsh >= 0.1.7 时才启用该声明（判据是版本号，不是「包在不在」）', () => {
-    const installer = readFileSync(INSTALLER, 'utf8')
-    expect(installer).toContain('Test-DshAtLeast $Version 0 1 7')
-    expect(installer).toContain('Enable-PresetDeclaration')
+  it.skipIf(installerMissing)('安装器只在 dsh >= 0.1.7 时才启用该声明（判据是版本号，不是「包在不在」）', () => {
+    expect(installerText).toContain('Test-DshAtLeast $Version 0 1 7')
+    expect(installerText).toContain('Enable-PresetDeclaration')
     // 0.1.5 的 profile 里也会出现 @deepseek-ai/*（peer 解析所致）⇒ 不能用包存在与否判。
-    expect(installer).toContain("'auto','on','off'")
+    expect(installerText).toContain("'auto','on','off'")
   })
 
   it('插件清单（id<-name，顺序敏感）与旧形态 agent.cordis.yml 完全一致', () => {

@@ -8,6 +8,8 @@
  *
  * 运行：npx vitest run tests/close-out-report.spec.ts --pool=threads
  */
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import { describe, expect, it } from 'vitest'
@@ -26,8 +28,19 @@ import type { DevFlowClientSnapshot } from '../src/contract.ts'
 import type { ExecutionRecord, PhaseAssignment } from '../src/host/types.ts'
 import { testReadStore, testScopeResolver } from './support/session-scope.ts'
 
-/** The real state root; the store is only ever READ from it. */
-const REAL_ROOT = 'D:/Deepseek/Harness'
+/**
+ * The real state root; the store is only ever READ from it.
+ *
+ * The author's machine keeps its live harness home on `D:`; any other machine
+ * has no such root, and that is an absent ENVIRONMENT rather than a defect in
+ * the product surface. So the root is configurable — point
+ * `DEVFLOW_FORENSICS_ROOT` at a harness home to take evidence from elsewhere —
+ * and the case below skips (with a logged reason) when the root or its records
+ * are not there. On a machine that has them, every assertion still runs.
+ */
+const REAL_ROOT = process.env.DEVFLOW_FORENSICS_ROOT ?? 'D:/Deepseek/Harness'
+/** The `.devflow` directory the store reads under the root. */
+const REAL_STATE_DIR = join(REAL_ROOT, '.devflow')
 
 function countsOf(snapshot: DevFlowClientSnapshot, now: number) {
   const model = createWorkspaceModel(snapshot)
@@ -91,10 +104,24 @@ describe('第四步 §七.6 展示层衔接（只读真实 .devflow，一次性�
       new LocalFileSystem(new Context(), { cwd: REAL_ROOT, diffBasisMaxBytes: 1024 * 1024 }),
       './.devflow',
     )
+    // 取证根不存在 ⇒ 这是环境缺失，跳过（不抛错、不失败）；作者机器上照常执行。
+    if (!existsSync(REAL_STATE_DIR)) {
+      const reason = `取证根不存在：${REAL_STATE_DIR}（可用 DEVFLOW_FORENSICS_ROOT 指定其它 harness home）`
+      // eslint-disable-next-line no-console
+      console.log(`[step4-display-diff] SKIP — ${reason}`)
+      return
+    }
     const state = await store.loadState()
     const assignments = Object.values(state.assignments)
     const executions = Object.values(state.executions)
     const tasks = await store.listTasks()
+    // 取证根存在但没有执行记录 ⇒ 没有可比对的"改前/改后"，跳过并说明原因。
+    if (executions.length === 0) {
+      const reason = `取证根无执行记录：${REAL_STATE_DIR}（durable.executions = 0）`
+      // eslint-disable-next-line no-console
+      console.log(`[step4-display-diff] SKIP — ${reason}`)
+      return
+    }
     const now = Date.now()
     const completions = executions.map(item => Date.parse(item.completedAt ?? '')).filter(Number.isFinite)
     const newestCompletion = completions.length === 0 ? 0 : Math.max(...completions)

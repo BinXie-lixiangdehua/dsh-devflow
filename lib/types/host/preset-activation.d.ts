@@ -91,17 +91,25 @@ export declare const CODE_MESSAGES: Record<DevFlowActivationCode, string>;
 /**
  * Produce a stable activationCode-carrying fault for the Harness Hook.
  *
- * When the running agent-presets copy exposes its `AgentPresetActivationFault`
- * (the Hook-enabled build sharing this process), the thrown value is an
- * instance of it so the Hook preserves the DevFlow code in its bounded
- * details. When that class is absent (a stale published snapshot, or a
- * separate module copy), a structurally equivalent fault with the same
- * `activationCode` is thrown; the Hook still fails the activation closed with
- * its generic code, and DevFlow's own reporting surface keeps the stable code.
+ * Always a structurally equivalent fault carrying the same `activationCode`:
+ * the Hook fails the activation closed with its generic code, and DevFlow's own
+ * reporting surface keeps the stable code.
  *
- * The fault class itself is the Harness's shape, so it carries the code and
- * nothing else; this module's own durable record is where phase, attempt count,
- * and the operator-facing reason live.
+ * 2026-10-03 (dsh three-version adaptation): this used to probe the running
+ * agent-presets copy for an `AgentPresetActivationFault` constructor and prefer
+ * a real instance of it. That probe has been removed because **no published
+ * dsh provides the class**: `@deepseek-ai/dsh-agent-presets` stops at
+ * `0.1.5-rc.3` on the registry, and neither the published `0.1.5-rc.2` snapshot
+ * this repo installs nor `0.1.7`/`0.2.0` carry `AgentPresetActivationFault`
+ * at all (0.1.7+ removed the whole per-Agent preset-activation Hook, replacing
+ * it with `RemoteError('agent-preset/invalid', …)`). The probe therefore only
+ * ever resolved against an unpublished local 0.1.5 port build, while costing a
+ * bare-specifier `import()` of a package name that no longer exists upstream —
+ * a module-resolution hazard for a bundle adapter. The fallback below is the
+ * path every published host already took, so nothing observable changes.
+ *
+ * The fault carries the code and nothing else; this module's own durable record
+ * is where phase, attempt count, and the operator-facing reason live.
  * @param code - the stable refusal code.
  * @param options - optional `cause` chain kept for in-process debugging.
  * @returns the fault to throw.

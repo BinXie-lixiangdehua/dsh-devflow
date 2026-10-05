@@ -36,7 +36,11 @@
  */
 
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+// NOTE (2026-10-03): `import type {} from '@deepseek-ai/dsh-agent-presets'`
+// removed here as well. The read below is already a structural cast
+// (`as unknown as { get(name: string): unknown }`), so the augmentation it
+// pulled in was unused, and the plural package name no longer exists in
+// 0.1.7/0.2.0 (see the matching note in index.ts).
 import type {} from '@deepseek-ai/dsh-tools'
 
 /** The one preset id whose sessions own the DevFlow capability. */

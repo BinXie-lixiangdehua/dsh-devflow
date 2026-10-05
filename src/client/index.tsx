@@ -191,13 +191,48 @@ export function apply(ctx: ClientContext): void {
     // product committed to.
     const list = (ctx.sessions as unknown as ISessions).list
     let disposeType: (() => void) | null = null
+    /**
+     * Resolve the Session the panel is bound to.
+     *
+     * dsh 0.1.5 publishes `SessionListState.current`; **0.2.0 removed that field**
+     * from the list store (its `SessionListState` is exactly `ids` / `byId` /
+     * `phase` / `projectionsBySession`), moving ownership of the selection to the
+     * retention registry. `apps/cli` 0.2.0 and every 0.2.0 client package that
+     * needs the selection derive it the same way — the row retained by
+     * `mainView` — so the same derivation is what keeps this plugin correct on
+     * both host lines without caring which one it runs under.
+     *
+     * Reading only `state.current` (as this did before) is undefined on 0.2.0, so
+     * the resolve returned `undefined` on every pass, `wanted` was always false,
+     * and the DevFlow tab type was never registered — the canvas pane and the
+     * overview float were both absent for a reason that had nothing to do with
+     * the preset actually being devflow.
+     */
+    const currentSession = (state: { current?: unknown; byId: Record<string, unknown> }): {
+      projectionValues?: { agentPreset?: unknown }
+    } | undefined => {
+      // 0.1.5 first: its list store owns the selection, so `current` is the
+      // authoritative pointer there.
+      const byCurrent = typeof state.current === 'string'
+        ? state.byId[state.current] as { projectionValues?: { agentPreset?: unknown } } | undefined
+        : undefined
+      if (byCurrent !== undefined) return byCurrent
+      // 0.2.0: no `current` on the store — the row retained by `mainView` is the
+      // on-stage session (see the note above).
+      const rows = Object.values(state.byId) as Array<{
+        retainedBy?: { mainView?: number }
+        projectionValues?: { agentPreset?: unknown }
+      }>
+      return rows.find(row => (row.retainedBy?.mainView ?? 0) > 0)
+    }
     const syncType = (): void => {
-      const state = list.getSnapshot()
-      const session = state.current === undefined ? undefined : state.byId[state.current]
-      const wanted = session?.projectionValues?.agentPreset === DEVFLOW_PRESET_ID
+      const state = list.getSnapshot() as unknown as { current?: unknown; byId: Record<string, unknown> }
+      const session = currentSession(state)
+      const preset = session?.projectionValues?.agentPreset
+      const wanted = preset === DEVFLOW_PRESET_ID
       // Diagnostic marker so the preset binding can be checked from the DOM.
       try {
-        document.documentElement.dataset.devflowPreset = String(session?.projectionValues?.agentPreset ?? 'none')
+        document.documentElement.dataset.devflowPreset = String(preset ?? 'none')
         document.documentElement.dataset.devflowPresetWanted = String(wanted)
       } catch { /* document may be absent in tests */ }
       if (wanted && disposeType === null) disposeType = ctx.sidebarRightTabs.register(devflowDefinition(ctx.locale.bind(NS)))

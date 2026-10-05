@@ -10,7 +10,15 @@ import type {} from '@deepseek-ai/dsh-tools'
 // Type-only: resolves ctx.commands for the optional command child.
 import type {} from '@deepseek-ai/dsh-commands'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+// NOTE (2026-10-03): a `import type {} from '@deepseek-ai/dsh-agent-presets'`
+// used to sit here to recover the typed `Context.agentPresets` overload. It is
+// gone on purpose: that package name exists only in 0.1.5 and is removed in
+// 0.1.7/0.2.0 (where `Context.agentPresets` is declared by
+// `@deepseek-ai/dsh-agent-preset-registry`), so a single import cannot be
+// correct for all three versions. Every read below goes through
+// `ctx.get('agentPresets')`, whose non-strict overload returns `any`, so the
+// import was never needed to compile — removing it drop the plural name from
+// this module's resolution surface entirely.
 import { DevFlowStore, type DevFlowStoreState } from './storage.ts'
 import { initialDevFlowState } from './state.ts'
 import { DevFlowSessionStores, type DevFlowSessionScope } from './session-store.ts'

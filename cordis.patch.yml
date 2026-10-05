@@ -45,7 +45,7 @@
           # 该行提供的 `agentPresetActivation` 是隔离服务，不带 realm 会被新版
           # 注册表的泄漏审计判为 “Preset services require isolate realms”。
           - id: devflow-activation
-            name: 'file:///C:/Users/xiebin/.dsh/local-plugins/dsh-devflow/lib/host/preset-activation.js?rev=source'
+            name: '../../lib/host/preset-activation.js'
             isolate:
               agentPresetActivation: true
           - id: tool-bash
