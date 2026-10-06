@@ -387,6 +387,13 @@ function Enable-PresetDeclaration([string]$Text) {
         $lines[$i] = $Matches[1] + 'false'
         $touched = $true
         $inBlock = $false
+      } elseif ($line -match '^(\s*disabled:\s*)false\s*$') {
+        # 出厂即启用（本版起的默认形态）：已经是目标状态，记为「已处理」。
+        # 必须这样记：否则下面的兜底会**再插一条 `disabled: false`**，同一 mapping 出现
+        # 两个 `disabled` 键 ⇒ js-yaml 报 duplicated mapping key ⇒ parsePatchList 抛
+        # "failed to parse overlay" ⇒ 宿主启动失败。
+        $touched = $true
+        $inBlock = $false
       }
     }
   }
@@ -434,6 +441,40 @@ if ($SourceIsDir) {
 if (-not (Test-Path -LiteralPath $ProfilePkg)) {
   throw "找不到 profile 配置：$ProfilePkg —— 请确认 dsh 已安装且 profile 名正确（-Profile）。"
 }
+
+# ── 0.5 版本闸门：本插件自本版起要求 dsh >= 0.1.7 ─────────────────────────────
+# 为什么必须**在写任何文件之前**拒绝：出厂模板的预设声明行是「启用 + 包内子路径」，
+# 而 0.1.5 遇到「已启用但解析不到」的行会**中止启动**（vendored cordis loader 抛
+# failed to import loader entry → app-boot 报 plugin tree failed to load）。把它挡在
+# 安装入口，才不会留下「装上了、但宿主起不来」的静默崩溃路径。本次拒绝不改任何文件。
+$dshGateProbe = Get-DshProbe $ProfileDir $DshVersion $DshHome
+$dshGateVersion = $dshGateProbe.Version
+Say ''
+Say ("  目标 dsh 版本 : " + $(if ([string]::IsNullOrWhiteSpace($dshGateVersion)) { '（读不到）' } else { $dshGateVersion }))
+Say ("  版本探测来源  : " + $(if ([string]::IsNullOrWhiteSpace($dshGateProbe.SourceKind)) { '（未探测到）' } else { $dshGateProbe.SourceKind }))
+if ([string]::IsNullOrWhiteSpace($dshGateVersion)) {
+  throw @"
+本插件要求 dsh >= 0.1.7，但探测不到目标 dsh 的版本。
+  探测来源：$($dshGateProbe.SourcePath)
+  · 请用 -DshVersion <版本> 显式指定（例如 -DshVersion 0.2.0-rc.2），或
+  · 确认目标 profile 上已正确安装 dsh 后再装本插件。
+  自本版起不再支持 dsh 0.1.5：它会把本插件的预设声明行当成致命错误。
+  本次安装未改动任何文件。
+"@
+}
+if (-not (Test-DshAtLeast $dshGateVersion 0 1 7)) {
+  throw @"
+本插件自本版起要求 dsh >= 0.1.7，检测到的是 $dshGateVersion。
+  探测来源：$($dshGateProbe.SourceKind)
+  dsh 0.1.5 不再受支持，原因有两条：
+    · 它没有官方插件管理器（`packages/boot/plugin-manager` 自 0.1.7 起才存在）；
+    · 它缺少 `@deepseek-ai/dsh-agent-preset`，而本插件的预设声明行出厂即启用 ⇒
+      它会以 `plugin tree failed to load: failed to import loader entry …` 中止启动。
+  请先把 dsh 升级到 0.1.7 或更高，再安装本插件。
+  本次安装未改动任何文件。
+"@
+}
+Say '  ✅ 版本闸门通过（dsh >= 0.1.7）' 'Green'
 
 # ── 1. 插件落盘 ───────────────────────────────────────────────────────────────
 Step '1/5 插件落盘'
@@ -590,16 +631,22 @@ if ($SkipPreset) {
     }
     Say "  激活行指向：$url" 'Green'
 
-    # ── 新形态（dsh 0.1.7+）：启用插件自带 cordis.patch.yml 里的预设声明行 ──────
-    # 该文件是本插件的 bundle patch（`dsh.bundle.patch` 指向它）。声明行**出厂即
-    # `disabled: true`**：0.1.5 的加载器会**硬失败**在解析不到的 entry 上
-    #   `dsh: plugin tree failed to load: failed to import loader entry preset-devflow
-    #    (@deepseek-ai/dsh-agent-preset): Cannot find package ...`
-    # 而它自己的审计明确写着「Disabled entries are the only valid」未解析项
-    # （`packages/boot/app-boot/src/index.ts:683`）⇒ 只有**禁用**的行才能两版共存。
-    # 因此：≥0.1.7 才把它改成 enabled 并写入绝对 URL；0.1.5 保持禁用。
-    $dshProbe = Get-DshProbe $ProfileDir $DshVersion $DshHome
-    $dshVer = $dshProbe.Version
+    # ── 新形态（dsh 0.1.7+）：核验插件自带 cordis.patch.yml 里的预设声明行 ──────
+    # 该文件是本插件的 bundle patch（`dsh.bundle.patch` 指向它）。自本版起它**出厂即
+    # `disabled: false` + 包内子路径**，安装器**不再需要改写**（旧版要写绝对 file:// URL
+    # 并把 disabled 改成 false，是因为那行嵌在 `config.plugins` 里、app-boot 的路径锚定
+    # `anchorInsertedPluginNames` 不会递归到它，相对路径会以 profile 目录为基准而落空）。
+    # 0.1.5 兼容为何取消：0.1.5 遇到「已启用但解析不到」的行会**中止启动** ——
+    #   vendored cordis loader 先抛（`vendor/loader/src/config/entry.ts:280-282`
+    #   → `config/group.ts:79-80`），app-boot 再报 `plugin tree failed to load`
+    #   （`packages/boot/app-boot/src/index.ts:832`）；其审计 `assertEntriesLoaded`
+    #   （`:688-694`，JSDoc 原话「Disabled entries are the only valid」在 `:683-684`）
+    #   同样拒绝 fiber-less 的启用行。0.1.5 里没有 `@deepseek-ai/dsh-agent-preset`
+    #   （只有复数名），启用即必炸。本版起改为**在写任何文件之前就拒绝 dsh < 0.1.7**。
+    # 补充：0.1.7/0.2.0 对「非必需行」只 warning、不中断启动
+    #   （`auditStartupEntries`，`packages/boot/app-boot/src/index.ts:925-939`）。
+    $dshProbe = $dshGateProbe
+    $dshVer = $dshGateVersion
     $enableDeclaration = switch ($PresetDeclaration) {
       'on' { $true }
       'off' { $false }
@@ -630,8 +677,15 @@ if ($SkipPreset) {
         $pOut = [System.Text.RegularExpressions.Regex]::Replace($pText, $pRe, "`$1name: '" + $url + "'")
         # 启用该声明行：把它自己的 `disabled:` 改成 false（只动 preset-devflow 这一条）。
         $pOut = Enable-PresetDeclaration $pOut
+        # 本版起的出厂形态就是「包内子路径 + 已启用」⇒ 上面两步都不会改写，这是**预期**，
+        # 不能当成「没找到声明行」报警（旧逻辑用 `$pOut -eq $pText` 判"没找到"，会误报）。
+        $newFormRe = "(?m)^\s*name:\s*['`"]?@xiaoxie-ide/dsh-devflow/preset-activation['`"]?\s*$"
         if ($pOut -eq $pText) {
-          Say '  ⚠️ 在 cordis.patch.yml 里没找到新形态预设声明行，未启用' 'Yellow'
+          if ($pText -match $newFormRe) {
+            Say '  ✅ 新形态预设声明已是出厂形态（已启用 + 包内子路径），安装器无需改写' 'Green'
+          } else {
+            Say '  ⚠️ 在 cordis.patch.yml 里没找到新形态预设声明行，未启用' 'Yellow'
+          }
         } elseif ($DryRun) {
           Say "  （DryRun：将启用新形态预设声明于 $patchWrite，本次不写）" 'Yellow'
         } else {
@@ -641,7 +695,7 @@ if ($SkipPreset) {
         }
       }
     } else {
-      Say '  目标 dsh 不认声明式预设（< 0.1.7）⇒ 新形态保持禁用，只用旧形态（目录式）' 'Gray'
+      Say '  已按 -PresetDeclaration off 跳过（新形态声明保持原样，仅用旧形态目录式预设）' 'Gray'
     }
   }
 }

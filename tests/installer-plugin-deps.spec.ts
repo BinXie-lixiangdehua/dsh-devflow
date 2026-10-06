@@ -150,15 +150,21 @@ describe.skipIf(installerMissing)('安装器：双形态预设部署', () => {
     expectContains(installerText, 'Enable-PresetDeclaration')
   })
 
-  it('只对 dsh >= 0.1.7 启用声明 —— 0.1.5 会在未解析 entry 上**硬失败**', () => {
-    // 实测（第十九步 0.1.5 沙箱，未修之前）：
-    //   dsh: plugin tree failed to load: failed to import loader entry preset-devflow
-    //   (@deepseek-ai/dsh-agent-preset): Cannot find package ...
-    // ⇒ 必须按版本判定，并给出 -PresetDeclaration on/off 的人工兜底。
+  it('安装器在写任何文件之前拒绝 dsh < 0.1.7 —— 不留「装上后宿主起不来」的路径', () => {
+    // 0.1.5 遇到「已启用但解析不到」的行会中止启动（vendored loader →
+    // `plugin tree failed to load`），所以必须在**安装入口**明确拒绝，而不是装完再说。
     expectContains(installerText, 'Test-DeclarationSupported')
     expectContains(installerText, "Test-DshAtLeast $Version 0 1 7")
     expectContains(installerText, '$PresetDeclaration')
-    expectContains(installerText, '新形态保持禁用，只用旧形态（目录式）')
+    // 版本闸门本体：探测 + 两个拒绝分支（版本读不到 / 版本 < 0.1.7）。
+    expectContains(installerText, 'Test-DshAtLeast $dshGateVersion 0 1 7')
+    expectContains(installerText, '本插件自本版起要求 dsh >= 0.1.7')
+    expectContains(installerText, '本次安装未改动任何文件')
+    // 闸门必须早于第一次写操作（Step '1/5 插件落盘' / Copy-Item）。
+    const gate = installerText.indexOf('Test-DshAtLeast $dshGateVersion 0 1 7')
+    const firstWrite = installerText.indexOf("Step '1/5 插件落盘'")
+    expect(gate).toBeGreaterThan(-1)
+    expect(firstWrite).toBeGreaterThan(gate)
   })
 
   it('-DshVersion 可显式给出宿主版本（探不到时的人工兜底）', () => {

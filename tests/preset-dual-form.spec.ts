@@ -38,8 +38,18 @@ const installerMissing: string | false = installer === undefined
 const installerText = installer?.text ?? ''
 
 const DEVFLOW_PRESET_ID = 'devflow'
-/** 激活行在仓库内保持相对写法（安装器会改写成绝对 file:// URL）。 */
+/** 旧形态（目录式 `presets/devflow/agent.cordis.yml`）的激活行保持仓库内相对写法。 */
 const ACTIVATION_SOURCE_PATH = '../../lib/host/preset-activation.js'
+/**
+ * 新形态（bundle patch `cordis.patch.yml`）的激活行必须用**包内子路径**。
+ *
+ * 为什么不能用相对路径：该行嵌在 `config.plugins` 里，而 app-boot 的路径锚定函数
+ * `anchorInsertedPluginNames` 只在 `entry.group && Array.isArray(entry.config)` 时才递归
+ * （`packages/boot/app-boot/src/index.ts:352`），**不会走到这一行** ⇒ 相对路径会以
+ * **profile 目录**为基准解析，必然落空。子路径是裸名，从 profile 的 node_modules 解析。
+ * 前提：`package.json` 的 `exports` 暴露 `./preset-activation`（见下方同名用例）。
+ */
+const PATCH_ACTIVATION_SPEC = '@xiaoxie-ide/dsh-devflow/preset-activation'
 
 // ── 极小 YAML 子集读取器 ────────────────────────────────────────────────────
 // 支持：块序列（`- `）、块映射（`key:`）、单/双引号标量与裸标量、`!!js <expr>`
@@ -226,31 +236,57 @@ describe('预设双形态：新形态声明与旧形态逐条一致', () => {
     expect(config.order).toBe(50)
   })
 
-  it('声明行出厂即 disabled —— 两版共存的**关键**（0.1.5 的加载器会硬失败在未解析 entry 上）', () => {
-    // 实测（第十九步，0.1.5 沙箱）：
-    //   dsh: plugin tree failed to load: failed to import loader entry preset-devflow
-    //   (@deepseek-ai/dsh-agent-preset): Cannot find package ...
-    // 而 0.1.5 自己的审计写着「Disabled entries are the only valid」未解析项
-    // （packages/boot/app-boot/src/index.ts:683）。⇒ 默认必须是 disabled: true。
+  it('声明行出厂即 enabled —— 装上即用的关键（0.1.5 已不受支持，安装器拒绝低版本）', () => {
+    // 历史（为什么当年必须是 disabled: true）：0.1.5 遇到「已启用但解析不到」的行会
+    // **中止启动** —— vendored loader 先抛
+    //   `failed to import loader entry preset-devflow (@deepseek-ai/dsh-agent-preset)`
+    // （vendor/loader/src/config/entry.ts:280-282 → config/group.ts:79-80），
+    // app-boot 再包成 `plugin tree failed to load`（packages/boot/app-boot/src/index.ts:832）；
+    // 其审计 assertEntriesLoaded（:688-694，JSDoc 原话「Disabled entries are the only valid」
+    // 在 :683-684）同样拒绝 fiber-less 的启用行。而 0.1.5 里没有
+    // `@deepseek-ai/dsh-agent-preset`（只有复数名 dsh-agent-presets）⇒ 启用即必炸。
+    // 现在：自本版起不再支持 dsh < 0.1.7（install.ps1 在写任何文件之前就拒绝），
+    // 且 0.1.7/0.2.0 对「非必需行」只 warning、不中断启动
+    // （auditStartupEntries，packages/boot/app-boot/src/index.ts:925-939）。
+    // ⇒ 出厂必须 enabled：否则官方插件管理器装完，预设不出现，还要手工第二步。
     const declared = newFormDeclarationRow(patchSource)
-    expect(declared.disabled).toBe(true)
+    expect(declared.disabled).toBe(false)
   })
 
-  it.skipIf(installerMissing)('安装器只在 dsh >= 0.1.7 时才启用该声明（判据是版本号，不是「包在不在」）', () => {
+  it.skipIf(installerMissing)('安装器要求 dsh >= 0.1.7（判据是版本号，不是「包在不在」）', () => {
     expect(installerText).toContain('Test-DshAtLeast $Version 0 1 7')
+    // 版本闸门：在**写任何文件之前**拒绝 < 0.1.7，否则会留下「装上后宿主起不来」的路径。
+    expect(installerText).toContain('Test-DshAtLeast $dshGateVersion 0 1 7')
+    expect(installerText).toContain('本插件自本版起要求 dsh >= 0.1.7')
     expect(installerText).toContain('Enable-PresetDeclaration')
     // 0.1.5 的 profile 里也会出现 @deepseek-ai/*（peer 解析所致）⇒ 不能用包存在与否判。
     expect(installerText).toContain("'auto','on','off'")
   })
 
-  it('插件清单（id<-name，顺序敏感）与旧形态 agent.cordis.yml 完全一致', () => {
+  it('包内子路径被 exports 暴露（否则子路径解析被 ERR_PACKAGE_PATH_NOT_EXPORTED 挡住）', () => {
+    // 这是「装上即用」的**唯一闸门**：exports 一旦存在，未导出的深路径全被封。
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      exports?: Record<string, unknown>
+    }
+    expect(manifest.exports?.['./preset-activation']).toEqual({
+      types: './lib/types/host/preset-activation.d.ts',
+      default: './lib/host/preset-activation.js',
+    })
+  })
+
+  it('插件清单（id<-name，顺序敏感）与旧形态逐条一致；仅激活行的 name 形态有意不同', () => {
     const config = newFormDeclaration(patchSource)
     const declared = pluginListOf(config.plugins)
     const legacy = pluginListOf(legacyPluginRows(legacyAgentSource))
-    expect(declared).toEqual(legacy)
+    // 两形态必须携带同一份清单（id 与顺序逐条相同）。唯一有意的差异是激活行的 name：
+    // 旧形态（目录式）保持仓库内相对路径，新形态（bundle patch）必须用包内子路径。
+    const normalized = declared.map(entry => (entry === `devflow-activation<-${PATCH_ACTIVATION_SPEC}`
+      ? `devflow-activation<-${ACTIVATION_SOURCE_PATH}`
+      : entry))
+    expect(normalized).toEqual(legacy)
     // 顺序与内容都钉住：清单非空、且首个是激活行。
     expect(declared.length).toBeGreaterThan(0)
-    expect(declared[0]).toBe(`devflow-activation<-${ACTIVATION_SOURCE_PATH}`)
+    expect(declared[0]).toBe(`devflow-activation<-${PATCH_ACTIVATION_SPEC}`)
   })
 
   it('激活行带 isolate realm（否则新版注册表按服务泄漏拒绝该预设）', () => {
