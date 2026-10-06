@@ -14,7 +14,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { delegationDepthOf } from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { assembleAgentPrompt } from './skill-binding.ts'
+import { assembleSkillPrompt } from './skill-binding.ts'
 import { MarkdownBridge, ResultParseError } from './markdown-bridge.ts'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { prepareTaskPackage } from './package-preflight.ts'
@@ -1823,7 +1823,7 @@ export function registerDevFlowTools(ctx: Context, services: DevFlowToolServices
         await recordDevFlowChange(store, 'devflow/execution/attempt/start', { attemptId: attempt.attemptId, at: attempt.updatedAt })
         const markdown = new MarkdownBridge().exportTask(taskPackage)
         await recordDevFlowChange(store, 'devflow/bridge/export', { taskId: task.id, bridge: 'markdown', at: new Date().toISOString() })
-        const persona = assembleAgentPrompt(child, await store.resolveAgentSkills(child))
+        const persona = await assembleSkillPrompt(store, child, { executionId: execution.executionId, taskId: task.id })
         // Only names this runtime may actually register for an employee are
         // forwarded: `tools.restrict()` rejects a name the child's scope does
         // not know, so an unfiltered list aborts the start.

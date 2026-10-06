@@ -20,7 +20,16 @@ import { applyDevFlowStateEvent, initialDevFlowState } from './state.ts'
 import { recordDevFlowChange } from './journal.ts'
 import { isRecord, isString, isStringArray, type DevFlowJsonValue } from './json.ts'
 import { isDevFlowCloseReason } from './types.ts'
-import { DEVFLOW_SKILLS, validateAgentSkills, type ResolvedSkillContent } from './skill-binding.ts'
+import {
+  DEVFLOW_SKILLS,
+  readBundledSkillBody,
+  skillGapMessage,
+  validateAgentSkills,
+  type DevFlowSkillDefinition,
+  type ResolvedSkillContent,
+  type SkillDegradation,
+  type SkillResolutionReport,
+} from './skill-binding.ts'
 import type { AgentInstance, AssignedRole, Project, Result, Task, TaskStatus } from './types.ts'
 import type {
   AgentConfigPatch, AgentKind, DecisionAnswer, DecisionRequest, DispatchDiagnostic, ScopeBoundaryHit, AgentLifecycleStatus, AgentModelConfig, AgentReport,
@@ -1206,6 +1215,17 @@ export class DevFlowStore {
    */
   private pendingJournalRecord: { readonly type: string; readonly data: unknown; readonly at: string } | null = null
 
+  /**
+   * How an unresolvable Skill is handled.
+   *
+   * `allowMissingSkills: false` (the default) is the product's stance: a GENERIC
+   * Skill whose bundled fallback is also unreadable is a packaging fault, and it
+   * stops the dispatch loudly. Turning it on is the explicit, journaled
+   * "I know — continue anyway" path (S6); it never changes what a
+   * project-convention gap does, which always proceeds WITH a signal.
+   */
+  skillPolicy: { readonly allowMissingSkills: boolean } = { allowMissingSkills: false }
+
   constructor(
     private readonly fs: FileSystem,
     private readonly root: string,
@@ -1832,21 +1852,92 @@ export class DevFlowStore {
     return validateOrchestrationAgent(raw, target.displayPath)
   }
 
-  /** Read the repository-backed Skill contents bound to one agent, preserving binding order. */
-  async resolveAgentSkills(agent: Pick<OrchestrationAgent, 'skills'>): Promise<ResolvedSkillContent[]> {
+  /**
+   * Resolve one employee's bound Skills — the PROJECT copy first, the package's
+   * bundled fallback second — and report every Skill that could not be supplied.
+   *
+   * Project-first is the whole contract (S2): a project that vendored its own
+   * `.agents/skills/<id>/SKILL.md` must get ITS text, never our fallback. The
+   * bundled body is read only after the project path is proven absent or
+   * unreadable, so the two can never be merged or swapped.
+   * @param agent - agent whose Skill ids are authoritative, in binding order.
+   * @returns resolved contents (in binding order) plus every degradation.
+   */
+  async resolveAgentSkillsDetailed(agent: Pick<OrchestrationAgent, 'skills'>): Promise<SkillResolutionReport> {
     validateAgentSkills(agent.skills, 'agent Skill resolution')
     const resolved: ResolvedSkillContent[] = []
+    const gaps: { definition: DevFlowSkillDefinition; reason: 'project-missing' | 'project-and-bundled-missing' }[] = []
     for (const skillId of agent.skills) {
       const definition = DEVFLOW_SKILLS[skillId]
       if (definition === undefined) throw new Error(`devflow: unknown skill id ${JSON.stringify(skillId)}`)
+      const projectBody = await this.readProjectSkill(definition)
+      if (projectBody !== undefined) {
+        resolved.push({ id: skillId, content: projectBody, origin: 'project' })
+        continue
+      }
+      const bundledBody = readBundledSkillBody(definition)
+      if (bundledBody !== undefined) {
+        resolved.push({ id: skillId, content: bundledBody, origin: 'bundled' })
+        continue
+      }
+      gaps.push({
+        definition,
+        reason: definition.bundledPath === undefined ? 'project-missing' : 'project-and-bundled-missing',
+      })
+    }
+    // `stillUsable` is only known once every id has been tried, so the messages are
+    // built after the loop rather than guessed inside it.
+    const degradations: SkillDegradation[] = gaps.map(({ definition, reason }) => {
+      const { headline, message } = skillGapMessage(definition, reason, resolved.length)
+      return {
+        id: definition.id,
+        kind: definition.kind,
+        expectedPath: definition.sourcePath,
+        ...(definition.bundledPath === undefined ? {} : { bundledPath: definition.bundledPath }),
+        // A project convention the project does not define is a legitimate state
+        // (the project simply has no such rule); a missing BUNDLED body is not.
+        canContinue: definition.kind === 'project-convention',
+        headline,
+        message,
+      }
+    })
+    return { resolved, degradations }
+  }
+
+  /** Read one Skill's project copy; undefined when the path is absent or not a file. */
+  private async readProjectSkill(definition: DevFlowSkillDefinition): Promise<string | undefined> {
+    try {
       const target = await this.fs.resolve(definition.sourcePath)
       const info = await this.fs.stat(target)
-      if (info?.type !== 'file') {
-        throw new Error(`devflow: Skill source ${definition.sourcePath} for ${skillId} is unavailable`)
-      }
-      resolved.push({ id: skillId, content: await this.fs.readText(target) })
+      if (info?.type !== 'file') return undefined
+      return await this.fs.readText(target)
+    } catch {
+      // An unreadable path is treated as absent so the bundled fallback can run;
+      // the resolution report still names the project path it tried.
+      return undefined
     }
-    return resolved
+  }
+
+  /**
+   * Read the Skill contents bound to one agent, preserving binding order.
+   *
+   * Kept for callers that cannot act on a degradation: a gap that may not
+   * proceed without the explicit opt-in is raised as the historical error.
+   * Callers that CAN signal a degradation use {@link resolveAgentSkillsDetailed}.
+   * @param agent - agent whose Skill ids are authoritative.
+   * @returns contents in binding order.
+   * @throws when a gap requires the explicit opt-in (default policy).
+   */
+  async resolveAgentSkills(agent: Pick<OrchestrationAgent, 'skills'>): Promise<ResolvedSkillContent[]> {
+    const report = await this.resolveAgentSkillsDetailed(agent)
+    const blocking = report.degradations.find(item => !item.canContinue)
+    if (blocking !== undefined) {
+      const where = blocking.bundledPath === undefined
+        ? blocking.expectedPath
+        : `${blocking.expectedPath} / ${blocking.bundledPath}`
+      throw new Error(`devflow: Skill source ${where} for ${blocking.id} is unavailable`)
+    }
+    return [...report.resolved]
   }
 
   /** Load every registered orchestration agent, oldest first; skips removed agents. */

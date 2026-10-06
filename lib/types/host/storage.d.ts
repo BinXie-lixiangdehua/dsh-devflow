@@ -14,7 +14,7 @@
  */
 import type { FileSystem } from '@deepseek-ai/dsh-fs';
 import { type DevFlowJsonValue } from './json.ts';
-import { type ResolvedSkillContent } from './skill-binding.ts';
+import { type ResolvedSkillContent, type SkillResolutionReport } from './skill-binding.ts';
 import type { AgentInstance, AssignedRole, Project, Result, Task } from './types.ts';
 import type { AgentConfigPatch, AgentReport, AgentReportUpdate, AssignmentStatus, CommanderAction, CommanderActionStatus, CommanderCheckpoint, CommanderCheckpointUpdate, CommanderDecision, CommanderDecisionUpdate, CommanderMemory, CommanderMemoryUpdate, CommanderPlan, CommanderPlanUpdate, CommanderReview, CommanderActionExecutionRecord, CommanderPolicy, CommanderProposal, CommanderRunRecord, CommanderSchedule, CommanderScheduleUpdate, CommanderWorkflow, CommanderWorkflowExecution, CommanderWorkflowStep, DevFlowCloseReason, ExecutionAttempt, ExecutionAttemptStatus, ExecutionBatch, ExecutionBatchStatus, ExecutionRecord, ExecutionStatus, Improvement, MvpPlan, OrchestrationAgent, Phase, PhaseAssignment, PhaseStatus, RuntimeSession, RuntimeSessionStatus, ScopeGuard, TemporaryAgentStatus, DevFlowProjectionState } from './types.ts';
 /** One self-contained, append-only DevFlow journal entry. */
@@ -113,6 +113,18 @@ export declare class DevFlowStore {
      * frame that explains the change. One commit must produce one frame.
      */
     private pendingJournalRecord;
+    /**
+     * How an unresolvable Skill is handled.
+     *
+     * `allowMissingSkills: false` (the default) is the product's stance: a GENERIC
+     * Skill whose bundled fallback is also unreadable is a packaging fault, and it
+     * stops the dispatch loudly. Turning it on is the explicit, journaled
+     * "I know — continue anyway" path (S6); it never changes what a
+     * project-convention gap does, which always proceeds WITH a signal.
+     */
+    skillPolicy: {
+        readonly allowMissingSkills: boolean;
+    };
     constructor(fs: FileSystem, root: string, 
     /**
      * Optional committed-write observer. Every `.devflow` mutation funnels through
@@ -298,7 +310,30 @@ export declare class DevFlowStore {
     registerAgent(input: Omit<OrchestrationAgent, 'status' | 'createdAt' | 'updatedAt'>): Promise<OrchestrationAgent>;
     /** Load one orchestration agent; undefined when the id is unknown or removed. */
     getAgent(agentId: string): Promise<OrchestrationAgent | undefined>;
-    /** Read the repository-backed Skill contents bound to one agent, preserving binding order. */
+    /**
+     * Resolve one employee's bound Skills — the PROJECT copy first, the package's
+     * bundled fallback second — and report every Skill that could not be supplied.
+     *
+     * Project-first is the whole contract (S2): a project that vendored its own
+     * `.agents/skills/<id>/SKILL.md` must get ITS text, never our fallback. The
+     * bundled body is read only after the project path is proven absent or
+     * unreadable, so the two can never be merged or swapped.
+     * @param agent - agent whose Skill ids are authoritative, in binding order.
+     * @returns resolved contents (in binding order) plus every degradation.
+     */
+    resolveAgentSkillsDetailed(agent: Pick<OrchestrationAgent, 'skills'>): Promise<SkillResolutionReport>;
+    /** Read one Skill's project copy; undefined when the path is absent or not a file. */
+    private readProjectSkill;
+    /**
+     * Read the Skill contents bound to one agent, preserving binding order.
+     *
+     * Kept for callers that cannot act on a degradation: a gap that may not
+     * proceed without the explicit opt-in is raised as the historical error.
+     * Callers that CAN signal a degradation use {@link resolveAgentSkillsDetailed}.
+     * @param agent - agent whose Skill ids are authoritative.
+     * @returns contents in binding order.
+     * @throws when a gap requires the explicit opt-in (default policy).
+     */
     resolveAgentSkills(agent: Pick<OrchestrationAgent, 'skills'>): Promise<ResolvedSkillContent[]>;
     /** Load every registered orchestration agent, oldest first; skips removed agents. */
     listAgents(): Promise<OrchestrationAgent[]>;

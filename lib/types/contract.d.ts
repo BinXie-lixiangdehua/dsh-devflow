@@ -143,8 +143,14 @@ export interface DevFlowClientBlocked {
     readonly agentId: string;
     /** Chinese display name of that employee. */
     readonly agentName: string;
-    /** What class of capability was missing. */
-    readonly gapKind: 'tool' | 'permission' | 'dependency' | 'unstated';
+    /**
+     * What class of capability was missing.
+     *
+     * `skill` is distinct from `tool`/`permission` on purpose: a missing Skill is
+     * fixed by supplying a file (or dropping the binding), which is a different
+     * action from granting a tool or a permission.
+     */
+    readonly gapKind: 'skill' | 'tool' | 'permission' | 'dependency' | 'unstated';
     /** The specific capability the employee named. */
     readonly missing: string;
     /** Who the employee said could clear it. */

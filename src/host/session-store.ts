@@ -242,6 +242,14 @@ export class DevFlowSessionStores {
     private readonly sandboxPolicyOf?: DevFlowSandboxPolicyResolver,
   ) {}
 
+  /**
+   * The Skill-degradation policy every store this owner creates carries.
+   *
+   * Held here because the stores are built lazily per pinned root: the deployment
+   * states the policy once, at mount, and every later session inherits it.
+   */
+  skillPolicy: { readonly allowMissingSkills: boolean } = { allowMissingSkills: false }
+
   /** The retained mixed-library root, as configured. Never a session's root. */
   get mixedLibraryRoot(): string {
     return this.defaultRoot
@@ -320,6 +328,7 @@ export class DevFlowSessionStores {
       )
       this.storeByRoot.set(root, store)
     }
+    store.skillPolicy = this.skillPolicy
     return { store, sessionId, workspacePath, storeRoot: root, sessionKey: root }
   }
 }

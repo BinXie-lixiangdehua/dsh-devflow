@@ -35,6 +35,16 @@ export interface DevFlowConfig {
      * waiting for a release.
      */
     sessionActivation?: DevFlowSessionActivationMode;
+    /**
+     * The explicit "I know — dispatch anyway" switch for a missing Skill (S6).
+     *
+     * Default `false`, and it only ever relaxes the GENERIC case (a missing bundled
+     * body, i.e. a packaging fault). Project-convention gaps always degrade with a
+     * signal and never need it. Every accepted degradation is journaled as
+     * `devflow/skill/degraded` with `acceptedByPolicy: true`, so "we continued
+     * knowingly" is a durable fact rather than an unrecorded decision.
+     */
+    allowMissingSkills?: boolean;
 }
 /**
  * Validate deployment-owned config. Unknown keys fail at load rather than
@@ -45,6 +55,7 @@ export interface DevFlowConfig {
 export declare function resolveConfig(config: DevFlowConfig): {
     devflowDir: string;
     sessionActivation: DevFlowSessionActivationMode;
+    allowMissingSkills: boolean;
 };
 /**
  * DevFlow orchestration service: owns project context, the task lifecycle,

@@ -108,10 +108,47 @@ export interface OverviewGate {
   readonly reason: 'allowed' | 'no-session' | 'preset-unresolved' | 'other-preset'
 }
 
+/** One row of the session list, as far as the gate reads it. */
+export interface OverviewSessionRow {
+  readonly projectionValues?: Readonly<Partial<Record<string, unknown>>>
+  /** Which views retain this session; `mainView > 0` is the on-stage session. */
+  readonly retainedBy?: { readonly mainView?: number }
+}
+
 /** The minimum of the session list state this module needs (keeps it test-pure). */
 export interface OverviewSessionInput {
-  readonly current: string | undefined
-  readonly byId: Readonly<Record<string, { readonly projectionValues?: Readonly<Partial<Record<string, unknown>>> } | undefined>>
+  /**
+   * The legacy pointer, authoritative on 0.1.5 where the list store itself owned
+   * the selection. **0.1.7/0.2.0 dropped this field** — see {@link overviewSessionId}.
+   */
+  readonly current?: string | undefined
+  /** The declared order, when the caller has it; falls back to the `byId` keys. */
+  readonly ids?: readonly string[]
+  readonly byId: Readonly<Record<string, OverviewSessionRow | undefined>>
+}
+
+/**
+ * The session the float must read, in whichever vocabulary the host speaks.
+ *
+ * 0.1.5's list store owned the selection, so `current` is authoritative there and
+ * is accepted WITHOUT a row lookup — a pointer at a not-yet-projected session must
+ * refuse as `preset-unresolved`, not as `no-session`.
+ *
+ * **0.1.7 and 0.2.0 have no `current` at all** (their `SessionListState` is
+ * `{ ids, byId, phase, projectionsBySession }`): the on-stage session is the row
+ * retained by `mainView`. Reading only `current` therefore answered `undefined` on
+ * BOTH versions, the gate refused with `no-session` on every pass, and the float
+ * never rendered. That is the whole defect this function exists to fix — the
+ * container's preset gate already carried the same fallback (`src/client/index.tsx`),
+ * and the float's gate was simply never given it.
+ * @param sessions - the client session list state, in either host's shape.
+ * @returns the on-stage session id, or undefined when the host names none.
+ */
+export function overviewSessionId(sessions: OverviewSessionInput | undefined | null): string | undefined {
+  if (sessions === undefined || sessions === null) return undefined
+  if (typeof sessions.current === 'string') return sessions.current
+  const ids = sessions.ids ?? Object.keys(sessions.byId)
+  return ids.find(id => (sessions.byId[id]?.retainedBy?.mainView ?? 0) > 0)
 }
 
 /**
@@ -121,11 +158,11 @@ export interface OverviewSessionInput {
  * @returns the gate decision; `allowed` is true for exactly one case.
  */
 export function overviewGate(sessions: OverviewSessionInput | undefined | null): OverviewGate {
-  if (sessions === undefined || sessions === null || sessions.current === undefined) {
+  const sessionId = overviewSessionId(sessions)
+  if (sessionId === undefined) {
     return { allowed: false, sessionId: null, preset: null, reason: 'no-session' }
   }
-  const sessionId = sessions.current
-  const summary = sessions.byId[sessionId]
+  const summary = sessions?.byId[sessionId]
   const raw = summary?.projectionValues?.agentPreset
   // A session whose preset is not recorded yet is NOT a DevFlow session: "later is
   // better than appear-then-disappear", so an unresolved preset refuses.

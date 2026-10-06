@@ -1,7 +1,8 @@
 import type { DevFlowJournalEntry, DevFlowStore } from './storage.ts'
 import type { DevFlowJsonValue } from './json.ts'
 
-type JournalWriter = Pick<DevFlowStore, 'appendJournal'>
+/** The store surface a journal append needs; structural so callers stay decoupled. */
+export type JournalWriter = Pick<DevFlowStore, 'appendJournal'>
 
 /** One DevFlow business mutation that has already committed to `.devflow/`. */
 export interface DevFlowChange {

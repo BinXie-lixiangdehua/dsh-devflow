@@ -60,6 +60,12 @@ const MISSING_TOOL = /\b(?:write|edit|str_replace_editor|read_image|pwsh|read|gl
 export function classifyCapabilityGap(detail: string): CapabilityGapKind {
   const text = detail.toLowerCase()
   if (/权限|授权|审批|提权|permission|not allowed|denied|forbidden/.test(text)) return 'permission'
+  // A missing SKILL is its own class: it is fixed by supplying a file (or dropping
+  // the binding), not by granting a tool or a permission — see the DevFlow
+  // skill-degradation journal rows, which carry the same distinction for gaps the
+  // orchestrator itself detects.
+  if (/(?:skill\.md|\bskills?\b|技能)/.test(text)
+    && /没有|缺少|缺|无|missing|未挂载|未注册|不可用|not\s+available|未配置|读取不到/.test(text)) return 'skill'
   if (TOOL_NAME.test(text) && /没有|缺少|缺|missing|no\s+(?:write|edit)|without|未挂载|不可用/.test(text)) return 'tool'
   if (/依赖|dependency|not installed|未安装|找不到命令|command not found/.test(text)) return 'dependency'
   return 'unstated'
@@ -94,6 +100,26 @@ function missingTools(detail: string): readonly string[] {
   const firstSentence = detail.split(/[。;；\n]/)[0] ?? detail
   const found = firstSentence.match(TOOL_NAME_ALL)
   return found === null ? [] : [...new Set(found)]
+}
+
+/**
+ * The Skill the employee named as missing, when it named one.
+ *
+ * A Skill gap must be named by its ID or path, never by the word "skill": the
+ * generic tool scan matches `skill` itself (it sits in the tool-name alternation)
+ * and would store `missing: 'skill'`, which tells a user nothing to act on.
+ */
+const SKILL_PATH = /\.agents\/skills\/([A-Za-z0-9._-]+)\//i
+const SKILL_NAMED = /(?:\bskills?\b|技能)[^A-Za-z0-9]{0,4}([A-Za-z0-9._@/-]{2,})/i
+/** Words that follow the marker but are not the Skill's name. */
+const SKILL_STOPWORD = /^(?:md|markdown|file|files|path|paths|id|ids)$/i
+
+function missingSkill(detail: string): string | undefined {
+  const byPath = SKILL_PATH.exec(detail)
+  if (byPath?.[1] !== undefined) return byPath[1]
+  const named = SKILL_NAMED.exec(detail)?.[1]
+  if (named !== undefined && !SKILL_STOPWORD.test(named)) return named
+  return undefined
 }
 
 /**
@@ -164,6 +190,11 @@ export function blockedReportFrom(input: {
   const detail = input.detail.trim() === '' ? '未标明' : input.detail
   const gapKind = classifyCapabilityGap(detail)
   const tools = missingTools(detail)
+  // A Skill gap is named by its own extractor: the tool-name scan would answer
+  // "skill", which names the CLASS rather than the gap.
+  const missing = gapKind === 'skill'
+    ? missingSkill(detail) ?? '未标明'
+    : tools.length === 0 ? '未标明' : normalizeMissing(tools.join(' / '))
   return {
     blockedId: randomUUID(),
     taskId: input.taskId,
@@ -171,7 +202,7 @@ export function blockedReportFrom(input: {
     ...(input.executionId === undefined ? {} : { executionId: input.executionId }),
     ...(input.sessionId === undefined ? {} : { sessionId: input.sessionId }),
     gapKind,
-    missing: tools.length === 0 ? '未标明' : normalizeMissing(tools.join(' / ')),
+    missing,
     suggestedOwner: suggestedOwner(detail),
     reason: boundedReason(gapReason(detail)),
     createdAt: input.now ?? new Date().toISOString(),
@@ -180,13 +211,15 @@ export function blockedReportFrom(input: {
 
 /** One line of human-facing Chinese, shown on the panel where a user will see it. */
 export function blockedHeadline(report: BlockedReport, displayName: string): string {
-  const gap = report.gapKind === 'tool'
-    ? `缺少${report.missing} 工具`
-    : report.gapKind === 'permission'
-      ? '权限不足'
-      : report.gapKind === 'dependency'
-        ? '缺少所需组件'
-        : '受阻（原因未标明）'
+  const gap = report.gapKind === 'skill'
+    ? (report.missing === '未标明' ? '缺少技能' : `缺少技能「${report.missing}」`)
+    : report.gapKind === 'tool'
+      ? `缺少${report.missing} 工具`
+      : report.gapKind === 'permission'
+        ? '权限不足'
+        : report.gapKind === 'dependency'
+          ? '缺少所需组件'
+          : '受阻（原因未标明）'
   const owner = report.suggestedOwner === '未标明' ? '' : `— 需 ${report.suggestedOwner} 处理`
   return `${displayName}${gap}，无法继续本次派发${owner}`
 }

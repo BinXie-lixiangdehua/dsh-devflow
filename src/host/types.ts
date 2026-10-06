@@ -599,7 +599,7 @@ export type AgentReportStatus = 'success' | 'failed' | 'blocked'
 export type AgentReportOutcome = 'delivered' | 'blocked' | 'failed' | 'unknown'
 
 /** The capability a blocked employee was missing, as far as it could tell. */
-export type CapabilityGapKind = 'tool' | 'permission' | 'dependency' | 'unstated'
+export type CapabilityGapKind = 'skill' | 'tool' | 'permission' | 'dependency' | 'unstated'
 
 /**
  * One structured "I am blocked" record: the durable form of an employee reply

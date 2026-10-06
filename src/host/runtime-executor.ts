@@ -12,7 +12,7 @@
 
 import { buildAgentReportFromResult, buildTaskPackage } from './runtime-bridge.ts'
 import { createScopeBoundaryHit, evaluateScopeUsage, foldScopeUsage, resolveTaskScope } from './scope-guard.ts'
-import { assembleAgentPrompt } from './skill-binding.ts'
+import { assembleSkillPrompt } from './skill-binding.ts'
 import type { RuntimeAdapter } from './runtime-adapter.ts'
 import type { DevFlowStore } from './storage.ts'
 import type {
@@ -48,6 +48,7 @@ export class AgentRuntimeExecutor {
     private readonly adapter: RuntimeAdapter,
   ) {}
 
+
   /**
    * Execute one execution record end to end: load the record and its agent,
    * build the task package, create and drive a runtime session through the
@@ -81,7 +82,10 @@ export class AgentRuntimeExecutor {
         throw new Error(`devflow: task ${taskId} already reached its ScopeGuard`)
       }
     }
-    const prompt = assembleAgentPrompt(agent, await this.store.resolveAgentSkills(agent))
+    const prompt = await assembleSkillPrompt(this.store, agent, {
+      executionId: execution.executionId,
+      taskId: execution.taskId ?? null,
+    })
     const taskPackage = buildTaskPackage(execution, agent, prompt, scope)
 
     // The execution start gates the whole call: an execution that cannot

@@ -59,6 +59,16 @@ export interface DevFlowConfig {
    * waiting for a release.
    */
   sessionActivation?: DevFlowSessionActivationMode
+  /**
+   * The explicit "I know — dispatch anyway" switch for a missing Skill (S6).
+   *
+   * Default `false`, and it only ever relaxes the GENERIC case (a missing bundled
+   * body, i.e. a packaging fault). Project-convention gaps always degrade with a
+   * signal and never need it. Every accepted degradation is journaled as
+   * `devflow/skill/degraded` with `acceptedByPolicy: true`, so "we continued
+   * knowingly" is a durable fact rather than an unrecorded decision.
+   */
+  allowMissingSkills?: boolean
 }
 
 const DEFAULT_DEVFLOW_DIR = './.devflow'
@@ -72,6 +82,7 @@ const DEFAULT_DEVFLOW_DIR = './.devflow'
 export function resolveConfig(config: DevFlowConfig): {
   devflowDir: string
   sessionActivation: DevFlowSessionActivationMode
+  allowMissingSkills: boolean
 } {
   const devflowDir = (config as Partial<DevFlowConfig>).devflowDir
     ?? (config as Partial<DevFlowConfig>).stateDir
@@ -85,14 +96,18 @@ export function resolveConfig(config: DevFlowConfig): {
       `DevFlowConfig.sessionActivation must be "auto", "host" or "preset-row"; got ${JSON.stringify(sessionActivation)}`,
     )
   }
+  const allowMissingSkills = (config as Partial<DevFlowConfig>).allowMissingSkills ?? false
+  if (typeof allowMissingSkills !== 'boolean') {
+    throw new Error(`DevFlowConfig.allowMissingSkills must be a boolean; got ${JSON.stringify(allowMissingSkills)}`)
+  }
   const unknown = Object.keys(config)
-    .filter(key => key !== 'devflowDir' && key !== 'stateDir' && key !== 'sessionActivation')
+    .filter(key => key !== 'devflowDir' && key !== 'stateDir' && key !== 'sessionActivation' && key !== 'allowMissingSkills')
   if (unknown.length > 0) {
     throw new Error(
-      `DevFlowConfig has unknown key(s) ${unknown.join(', ')}; config is { devflowDir?, stateDir?, sessionActivation? }`,
+      `DevFlowConfig has unknown key(s) ${unknown.join(', ')}; config is { devflowDir?, stateDir?, sessionActivation?, allowMissingSkills? }`,
     )
   }
-  return { devflowDir, sessionActivation }
+  return { devflowDir, sessionActivation, allowMissingSkills }
 }
 
 /**
@@ -191,7 +206,7 @@ export class DevflowController extends Service {
     // subscriber.
     this.changeBus = new DevFlowChangeBus()
     ctx.effect(() => () => { this.changeBus.dispose() }, 'devflow: change bus')
-    const { devflowDir, sessionActivation } = resolveConfig(config)
+    const { devflowDir, sessionActivation, allowMissingSkills } = resolveConfig(config)
     this.sessionStores = new DevFlowSessionStores(
       ctx.fs,
       devflowDir,
@@ -209,7 +224,11 @@ export class DevflowController extends Service {
         return policy === undefined ? undefined : { mode: policy.mode, workspaceRoot: policy.workspaceRoot }
       },
     )
+    // The Skill-degradation policy is stated once here and inherited by every
+    // session store the owner builds later (they are created lazily).
+    this.sessionStores.skillPolicy = { allowMissingSkills }
     this.store = new DevFlowStore(ctx.fs, devflowDir, committedWriteObserver(this.changeBus))
+    this.store.skillPolicy = { allowMissingSkills }
     this.workflow = new TaskWorkflow(this.store)
     this.agentWorkflow = new AgentWorkflow(this.store, this.workflow)
     const commander = DEFAULT_FIXED_AGENTS.find(agent => agent.agentId === 'commander')

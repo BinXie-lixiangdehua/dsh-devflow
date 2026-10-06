@@ -22,6 +22,7 @@ import {
   connectionLabel,
   hiddenDispatchCount,
   overviewGate,
+  overviewSessionId,
 } from '../src/client/overview.ts'
 import { DEVFLOW_FLOW_CSS } from '../src/client/flow-css.ts'
 
@@ -94,6 +95,67 @@ describe('step 3B overview gate — deny by default', () => {
     expect(overviewGate({ current: undefined, byId: {} })).toEqual({ allowed: false, sessionId: null, preset: null, reason: 'no-session' })
     expect(overviewGate(null).allowed).toBe(false)
     expect(overviewGate(undefined).allowed).toBe(false)
+  })
+})
+
+describe('概览浮层：0.1.7/0.2.0 的会话列表没有 current 字段', () => {
+  /*
+   * Real-host shapes: 0.1.7 and 0.2.0 build `SessionListState` as
+   * `{ ids, byId, phase, projectionsBySession }` and express "on stage" through
+   * `byId[id].retainedBy.mainView > 0`
+   * (Harness-020 packages/client/ui-workspace/tests/tree.client.spec.ts:22-41).
+   * Reading only `current` answered undefined on both versions, so the gate refused
+   * with `no-session` on every pass and the float never rendered — the cases below
+   * are the regression guard for exactly that.
+   */
+  it('mainView 那一行就是当前会话 ⇒ 必须放行', () => {
+    const gate = overviewGate({
+      ids: ['other', 's1'],
+      byId: {
+        other: { projectionValues: { agentPreset: 'standard' }, retainedBy: {} },
+        s1: { projectionValues: { agentPreset: 'devflow' }, retainedBy: { mainView: 1 } },
+      },
+    })
+    expect(gate).toEqual({ allowed: true, sessionId: 's1', preset: 'devflow', reason: 'allowed' })
+  })
+
+  it('没有 ids 时退回 byId 的键序', () => {
+    const gate = overviewGate({ byId: { s1: { projectionValues: { agentPreset: 'devflow' }, retainedBy: { mainView: 1 } } } })
+    expect(gate.allowed).toBe(true)
+    expect(gate.sessionId).toBe('s1')
+  })
+
+  it('没有任何 mainView 行 ⇒ no-session（deny by default 不变）', () => {
+    expect(overviewGate({ ids: ['a'], byId: { a: { projectionValues: { agentPreset: 'devflow' }, retainedBy: {} } } }))
+      .toEqual({ allowed: false, sessionId: null, preset: null, reason: 'no-session' })
+    expect(overviewGate({ byId: { s1: { projectionValues: { agentPreset: 'devflow' }, retainedBy: { mainView: 0 } } } }).reason)
+      .toBe('no-session')
+  })
+
+  it('0.2.0 形状下仍然只认 devflow', () => {
+    const gate = overviewGate({ byId: { s1: { projectionValues: { agentPreset: 'standard' }, retainedBy: { mainView: 2 } } } })
+    expect(gate.reason).toBe('other-preset')
+    expect(gate.sessionId).toBe('s1')
+  })
+
+  it('0.1.5 形状（有 current）不被改动：legacy 指针优先', () => {
+    const gate = overviewGate({
+      current: 'legacy',
+      byId: {
+        legacy: { projectionValues: { agentPreset: 'devflow' } },
+        staged: { projectionValues: { agentPreset: 'standard' }, retainedBy: { mainView: 1 } },
+      },
+    })
+    expect(gate.sessionId).toBe('legacy')
+    expect(gate.allowed).toBe(true)
+  })
+
+  it('overviewSessionId 直接可测（两版口径都在这一处）', () => {
+    expect(overviewSessionId(null)).toBeUndefined()
+    expect(overviewSessionId(undefined)).toBeUndefined()
+    expect(overviewSessionId({ current: 'c', byId: {} })).toBe('c')
+    expect(overviewSessionId({ ids: ['a', 'b'], byId: { a: {}, b: { retainedBy: { mainView: 1 } } } })).toBe('b')
+    expect(overviewSessionId({ ids: ['a', 'b'], byId: { a: {}, b: {} } })).toBeUndefined()
   })
 })
 

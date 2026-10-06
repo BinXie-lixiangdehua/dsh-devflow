@@ -178,6 +178,15 @@ export declare class DevFlowSessionStores {
         readonly data: unknown;
         readonly at: string;
     }) => void) | undefined, sandboxPolicyOf?: DevFlowSandboxPolicyResolver | undefined);
+    /**
+     * The Skill-degradation policy every store this owner creates carries.
+     *
+     * Held here because the stores are built lazily per pinned root: the deployment
+     * states the policy once, at mount, and every later session inherits it.
+     */
+    skillPolicy: {
+        readonly allowMissingSkills: boolean;
+    };
     /** The retained mixed-library root, as configured. Never a session's root. */
     get mixedLibraryRoot(): string;
     /** Every root this run has actually opened, for diagnostics and reports. */
