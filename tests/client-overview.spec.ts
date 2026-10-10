@@ -25,6 +25,7 @@ import {
   overviewSessionId,
 } from '../src/client/overview.ts'
 import { DEVFLOW_FLOW_CSS } from '../src/client/flow-css.ts'
+import { SESSION_OWNED_DETAIL } from '../src/client/store.ts'
 
 /** The float's own source, read as text so "no second channel" is asserted, not assumed. */
 const OVERVIEW_SOURCE = readFileSync(new URL('../src/client/DevFlowOverview.tsx', import.meta.url), 'utf8')
@@ -325,18 +326,29 @@ describe('step 3B overview numbers', () => {
 
 describe('live-channel posture wording', () => {
   it('names live, connecting and the polling fallback in Chinese', () => {
-    expect(connectionLabel({ phase: 'live', sequence: 3, revision: 1, detail: null, attempts: 0 })).toBe('实时通道')
-    expect(connectionLabel({ phase: 'connecting', sequence: null, revision: null, detail: null, attempts: 0 })).toBe('连接中')
-    expect(connectionLabel({ phase: 'polling', sequence: null, revision: null, detail: null, attempts: 2 })).toBe('轮询兜底')
+    expect(connectionLabel({ phase: 'live', sequence: 3, revision: 1, detail: null, attempts: 0, failure: null })).toBe('实时通道')
+    expect(connectionLabel({ phase: 'connecting', sequence: null, revision: null, detail: null, attempts: 0, failure: null })).toBe('连接中')
+    expect(connectionLabel({ phase: 'polling', sequence: null, revision: null, detail: null, attempts: 2, failure: null })).toBe('轮询兜底')
     expect(connectionLabel(null)).toBe('轮询兜底')
   })
 
+  it('names the one refusal a retry cannot clear, instead of passing it off as polling', () => {
+    // Measured on the desktop 2026-10-10: the agent-scoped bridge is refused
+    // `session/writer-held` while another dsh process owns the session, and four
+    // identical answers proved waiting it out is not a recovery. "轮询兜底" would
+    // tell the user to wait for something that never comes.
+    const refused = { phase: 'polling' as const, sequence: null, revision: null, detail: SESSION_OWNED_DETAIL, attempts: 1, failure: 'session-owned-elsewhere' as const }
+    expect(connectionLabel(refused)).toBe('被占用')
+    expect(connectionDetail(refused)).toBe(SESSION_OWNED_DETAIL)
+    expect(SESSION_OWNED_DETAIL).toContain('另一个 dsh 实例占用')
+  })
+
   it('surfaces the fixed fallback reason only while polling', () => {
-    expect(connectionDetail({ phase: 'live', sequence: 1, revision: 1, detail: null, attempts: 0 })).toBeNull()
+    expect(connectionDetail({ phase: 'live', sequence: 1, revision: 1, detail: null, attempts: 0, failure: null })).toBeNull()
     expect(connectionDetail(null)).toBeNull()
-    expect(connectionDetail({ phase: 'polling', sequence: null, revision: null, detail: null, attempts: 1 }))
+    expect(connectionDetail({ phase: 'polling', sequence: null, revision: null, detail: null, attempts: 1, failure: null }))
       .toBe('实时连接已断开，正在使用轮询')
-    expect(connectionDetail({ phase: 'polling', sequence: null, revision: null, detail: 'x', attempts: 1 })).toBe('x')
+    expect(connectionDetail({ phase: 'polling', sequence: null, revision: null, detail: 'x', attempts: 1, failure: null })).toBe('x')
   })
 
   it('keeps the float free of 依赖 / 前置 / 解锁', () => {

@@ -20,12 +20,54 @@ export interface DevFlowConnectionState {
     readonly detail: string | null;
     /** Consecutive failed opens; resets once a frame arrives. */
     readonly attempts: number;
+    /**
+     * The refusal that stopped the channel, when a retry cannot clear it; null
+     * while the channel is healthy or merely broken.
+     *
+     * Only `session-owned-elsewhere` is ever set here. A broken carrier keeps
+     * {@link CONNECTION_LOST_DETAIL} and its retry ladder — that is a transport
+     * fact and re-opening *is* the recovery. A refusal is a session-ownership
+     * fact, so it is named instead of counted.
+     */
+    readonly failure: DevFlowRemoteFailure | null;
 }
 export declare const INITIAL_CONNECTION_STATE: DevFlowConnectionState;
 /** Fixed fallback wording; never carries a raw transport error. */
 export declare const CONNECTION_LOST_DETAIL = "\u5B9E\u65F6\u8FDE\u63A5\u5DF2\u65AD\u5F00\uFF0C\u6B63\u5728\u4F7F\u7528\u8F6E\u8BE2";
+/**
+ * The one refusal the panel can name: another process holds this session's
+ * write lease, so the gateway cannot resolve the agent this bridge addresses.
+ * Measured on the dsh desktop 2026-10-10: four identical `session/writer-held`
+ * answers, which is what makes the automatic retry below futile.
+ */
+export declare const SESSION_OWNED_DETAIL = "\u8BE5\u4F1A\u8BDD\u6B63\u88AB\u53E6\u4E00\u4E2A dsh \u5B9E\u4F8B\u5360\u7528\uFF0C\u672C\u4FA7\u8BFB\u4E0D\u5230 DevFlow \u72B6\u6001";
 /** How long a live channel may stay silent before the panel treats it as lost. */
 export declare const CHANNEL_SILENCE_MS = 45000;
+/**
+ * Why a DevFlow read or subscription failed, as far as the panel may say.
+ *
+ * `session-owned-elsewhere` means the gateway refused an agent-scoped call
+ * because another dsh process holds the session's write lease
+ * (`packages/api/session-controller/src/agent.ts` resolves an agent by
+ * resuming it, and `session-persistence-jsonl` maps lease contention to
+ * `SessionAlreadyOwnedError`). Nothing on this side can clear that, so the
+ * panel names it and stops re-opening the stream.
+ */
+export type DevFlowRemoteFailure = 'session-owned-elsewhere' | 'unavailable';
+/**
+ * Classify a failure the carrier reported.
+ *
+ * The stream client rethrows the gateway's own `RemoteError` unchanged
+ * (`packages/api/gateway/src/client/stream-client.ts:131`), so `code` is the
+ * primary shape. The walk over `cause` / `rpcError` / `error` and the message
+ * test are defensive on purpose: a wrapper that preserved only the text must
+ * still classify, and a refusal misread as a transport fault is exactly what
+ * re-armed the futile retry this round removes.
+ *
+ * @param error - whatever the rejected call or stream threw.
+ * @returns the classified failure; anything unrecognized is `unavailable`.
+ */
+export declare function classifyRemoteFailure(error: unknown): DevFlowRemoteFailure;
 export type DevFlowClientLoadState = {
     readonly phase: 'loading';
     readonly snapshot: null;
@@ -42,6 +84,7 @@ export type DevFlowClientLoadState = {
     readonly phase: 'error';
     readonly snapshot: DevFlowClientSnapshot | null;
     readonly error: DevFlowClientStateError;
+    readonly failure: DevFlowRemoteFailure;
 };
 export type DevFlowClientAuditLoadState = {
     readonly phase: 'idle';
@@ -182,10 +225,28 @@ export declare class DevFlowLiveController {
     start(): void;
     /** Close the channel deliberately (unmount, session change). */
     stop(): void;
+    /**
+     * Re-open the channel on an explicit user action.
+     *
+     * A refusal ends the automatic ladder ({@link stall}), but the condition it
+     * reports belongs to another process: that host may have let go in the
+     * meantime, so a manual retry stays available. It is the only retry this
+     * failure gets beyond its first open.
+     */
+    retryNow(): void;
     dispose(): void;
     private clearTimers;
     private run;
     private noteFrame;
+    /**
+     * Report a refusal a retry cannot clear, and end the loop instead of counting.
+     *
+     * Measured on the dsh desktop 2026-10-10: four consecutive opens answered the
+     * identical `session/writer-held`, so the automatic ladder produced nothing
+     * but traffic. The panel now states the cause once and waits for a user
+     * action ({@link retryNow}) or a remount.
+     */
+    private stall;
     /** A dead carrier must be announced and retried, never silently replaced by polling. */
     private degrade;
     /**

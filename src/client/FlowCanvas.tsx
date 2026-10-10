@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CONNECTION_LOST_DETAIL, type DevFlowConnectionState, type DevFlowClientLoadState, type DevFlowInspectorTab } from './store.ts'
+import { CONNECTION_LOST_DETAIL, SESSION_OWNED_DETAIL, type DevFlowConnectionState, type DevFlowClientLoadState, type DevFlowInspectorTab } from './store.ts'
 import {
   FLOW_NODE_WIDTH,
   FLOW_SEMANTIC_LABELS,
@@ -838,8 +838,10 @@ export function FlowCanvas(props: FlowCanvasProps) {
               <span className={'devflow-flow-overviewicon'} aria-hidden="true" />
             </button>
           </div>
-          {connection?.phase === 'polling' && <span className={'devflow-flow-channel'} data-connection="polling" role="status">
-            {connection.detail ?? CONNECTION_LOST_DETAIL}（画布仍在每 5 秒拉取快照，重连成功后自动恢复实时更新）
+          {connection?.phase === 'polling' && <span className={'devflow-flow-channel'} data-connection="polling" data-devflow-failure={connection.failure ?? 'none'} role="status">
+            {connection.failure === 'session-owned-elsewhere'
+              ? `${connection.detail ?? SESSION_OWNED_DETAIL}（本侧不会自动重连；关闭另一侧的窗口后点「重试」即可恢复实时更新）`
+              : `${connection.detail ?? CONNECTION_LOST_DETAIL}（画布仍在每 5 秒拉取快照，重连成功后自动恢复实时更新）`}
           </span>}
           {connection?.phase === 'connecting' && <span className={'devflow-flow-channel'} data-connection="connecting" role="status">
             正在建立实时通道…（当前按 5 秒轮询快照）
@@ -1223,6 +1225,7 @@ function channelLine(connection: DevFlowConnectionState | null): string {
   if (connection === null) return '实时通道未启用 · 轮询快照'
   if (connection.phase === 'live') return `实时通道已连接${connection.sequence === null ? '' : ` · 游标 #${connection.sequence}`}`
   if (connection.phase === 'connecting') return '实时通道连接中 · 轮询快照'
+  if (connection.failure === 'session-owned-elsewhere') return '会话被另一个 dsh 实例占用 · 实时通道未建立'
   return '实时通道已断开 · 轮询兜底'
 }
 

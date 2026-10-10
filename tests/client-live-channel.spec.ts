@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import { DEVFLOW_REMOTE, parseDevFlowEvent, parseFollowRequest, type DevFlowFollowRequest, type DevFlowRemote } from '../src/client/remote.ts'
-import { CHANNEL_SILENCE_MS, CONNECTION_LOST_DETAIL, DevFlowLiveController } from '../src/client/store.ts'
+import { CHANNEL_SILENCE_MS, CONNECTION_LOST_DETAIL, SESSION_OWNED_DETAIL, DevFlowLiveController, classifyRemoteFailure } from '../src/client/store.ts'
 import { createFlowModel } from '../src/client/flow-projection.ts'
 import { createWorkspaceModel } from '../src/client/workspace.ts'
 import { DEVFLOW_CLIENT_EVENT_CHANGE_LIMIT, DEVFLOW_CLIENT_EVENT_PATH_LIMIT, type DevFlowClientEvent, type DevFlowClientSnapshot } from '../src/contract.ts'
@@ -503,5 +503,78 @@ describe('DevFlowLiveController', () => {
     expect(notifications).toBeGreaterThan(afterFirst)
     unsubscribe()
     controller.dispose()
+  })
+})
+
+/**
+ * The refusal path measured on the dsh desktop 2026-10-10.
+ *
+ * DevFlow's bridge is agent-scoped, so the gateway has to resolve an agent for
+ * the session; when another dsh process holds that session's write lease the
+ * gateway answers `session/writer-held` instead. Four consecutive opens answered
+ * the identical refusal, which is why the automatic ladder — fine for a broken
+ * carrier — is pure noise for this one.
+ */
+describe('DevFlowLiveController refusals', () => {
+  /** A carrier whose every open fails with `error`, counting the opens. */
+  function failingHarness(error: Error) {
+    const timers = fakeTimers()
+    let opens = 0
+    const remote = {
+      follow: (): AsyncIterable<DevFlowClientEvent> => {
+        opens += 1
+        return (async function* refused(): AsyncGenerator<DevFlowClientEvent> { throw error })()
+      },
+    } as unknown as DevFlowRemote
+    const controller = new DevFlowLiveController(remote, 'session-a', {
+      snapshot: () => { /* no frame ever arrives on this channel */ },
+      frame: () => { /* likewise */ },
+    }, { schedule: timers.schedule, clear: timers.clear })
+    return { timers, controller, opens: () => opens }
+  }
+
+  it('names the write-lease refusal and stops instead of retrying it', async () => {
+    const refusal = Object.assign(
+      new Error('session "session-a" is already owned by an active write handle'),
+      { code: 'session/writer-held' },
+    )
+    const { timers, controller, opens } = failingHarness(refusal)
+    controller.start()
+    await vi.waitFor(() => { expect(controller.getConnection().failure).toBe('session-owned-elsewhere') })
+    expect(controller.getConnection()).toMatchObject({
+      phase: 'polling', detail: SESSION_OWNED_DETAIL, attempts: 1, failure: 'session-owned-elsewhere',
+    })
+    // No retry is armed: the ladder must not add a fifth identical open on its own.
+    expect(timers.pending).toBe(0)
+    await timers.advance(60_000)
+    expect(opens()).toBe(1)
+    // A user action is the way back — the other holder may have let go by then.
+    controller.retryNow()
+    await vi.waitFor(() => { expect(opens()).toBe(2) })
+    controller.dispose()
+  })
+
+  it('keeps the announced-polling fallback and its retry ladder for a transport fault', async () => {
+    const { timers, controller, opens } = failingHarness(new Error('api gateway: Remote stream WebSocket failed'))
+    controller.start()
+    await vi.waitFor(() => { expect(controller.getConnection().phase).toBe('polling') })
+    expect(controller.getConnection()).toMatchObject({
+      detail: CONNECTION_LOST_DETAIL, attempts: 1, failure: null,
+    })
+    expect(timers.pending).toBe(1)
+    await timers.advance(1_000)
+    expect(opens()).toBe(2)
+    controller.dispose()
+  })
+
+  it('classifies the refusal from the code, from a wrapper, or from the text alone', () => {
+    expect(classifyRemoteFailure(Object.assign(new Error('x'), { code: 'session/writer-held' }))).toBe('session-owned-elsewhere')
+    expect(classifyRemoteFailure({ rpcError: { code: 'session/writer-held' } })).toBe('session-owned-elsewhere')
+    expect(classifyRemoteFailure(new Error('session "s" is already owned by an active write handle'))).toBe('session-owned-elsewhere')
+    // Everything else keeps the generic wording: a transport fault, a wrapper with
+    // no shape at all, and no error at all.
+    expect(classifyRemoteFailure(new Error('api gateway: Remote stream WebSocket failed'))).toBe('unavailable')
+    expect(classifyRemoteFailure({ code: 'gateway/internal' })).toBe('unavailable')
+    expect(classifyRemoteFailure(undefined)).toBe('unavailable')
   })
 })

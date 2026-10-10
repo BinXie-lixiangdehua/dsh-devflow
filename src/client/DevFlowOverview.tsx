@@ -45,6 +45,7 @@ import {
   type OverviewCounts,
   type OverviewSessionInput,
 } from './overview.ts'
+import { TOGGLE_CLEARANCE, windowControlsClearance } from './window-controls.ts'
 
 /** The session-list hook the framework binds onto a root-scoped cell. */
 export type UseOverviewSessions = <T>(selector: (state: OverviewSessionInput) => T) => T
@@ -98,14 +99,6 @@ const MEMBER_TONE: Readonly<Record<string, string>> = {
 }
 
 const LOADING: DevFlowClientLoadState = { phase: 'loading', snapshot: null, error: null }
-
-/**
- * Gap kept to the right of the column's own toggle button. The button is 28px wide and
- * sits at the frame's right edge while the column is collapsed, so the float has to clear
- * the button PLUS this margin — a bare "column width" offset put the float on top of it
- * at every narrow viewport (measured at 420/600/720px in the first evidence pass).
- */
-const TOGGLE_CLEARANCE = 44
 
 /** The float's cell body. */
 export function DevFlowOverview(props: DevFlowOverviewProps) {
@@ -184,7 +177,13 @@ export function DevFlowOverview(props: DevFlowOverviewProps) {
       const columnWidth = column === null ? 0 : Math.round(column.getBoundingClientRect().width)
       const toggle = document.querySelector('button[data-sidebar-right-toggle="true"]')
       const toggleWidth = toggle === null ? 0 : Math.ceil(toggle.getBoundingClientRect().width)
-      const width = Math.max(columnWidth, toggle === null ? 0 : toggleWidth + TOGGLE_CLEARANCE)
+      const width = Math.max(
+        columnWidth,
+        toggle === null ? 0 : toggleWidth + TOGGLE_CLEARANCE,
+        // The shell's own window controls sit in the top-right corner, above the
+        // page: the float clears them or it is unclickable there.
+        windowControlsClearance(),
+      )
       host.style.setProperty("--devflow-ov-offset", Math.round(width) + "px")
     }
     place()

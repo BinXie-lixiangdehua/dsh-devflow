@@ -1,6 +1,6 @@
 # DevFlow
 
-**Version `1.5.0`** · 2026-10-06
+**Version `1.5.1`** · 2026-10-11
 
 A **multi-agent workflow orchestration plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness)**.
 
@@ -43,7 +43,7 @@ Useful switches:
 .\install.ps1 -SkipPreset
 
 # install a specific tag/branch
-.\install.ps1 -Ref 'v1.5.0'
+.\install.ps1 -Ref 'v1.5.1'
 ```
 
 ## What the installer actually changes

@@ -19,7 +19,7 @@
 import type { DevFlowClientAgent } from '../contract.ts'
 import { applyPausePresentation } from './pause-presentation.ts'
 import { createFlowModel, type FlowEdge, type FlowModel, type FlowNodeState } from './flow-projection.ts'
-import { CONNECTION_LOST_DETAIL, type DevFlowConnectionPhase, type DevFlowConnectionState } from './store.ts'
+import { CONNECTION_LOST_DETAIL, SESSION_OWNED_DETAIL, type DevFlowConnectionPhase, type DevFlowConnectionState } from './store.ts'
 import { flowAgentName, type WorkspaceModel } from './workspace.ts'
 
 /** The one preset that owns this float. */
@@ -229,12 +229,16 @@ export function connectionLabel(connection: DevFlowConnectionState | null): stri
   if (connection === null) return '轮询兜底'
   if (connection.phase === 'live') return '实时通道'
   if (connection.phase === 'connecting') return '连接中'
+  // The one refusal worth naming in the chip: "polling" would suggest a
+  // transport problem the user can wait out, and this one cannot be waited out.
+  if (connection.failure === 'session-owned-elsewhere') return '被占用'
   return '轮询兜底'
 }
 
 /** The reason line under a polling badge, or null while the channel is healthy. */
 export function connectionDetail(connection: DevFlowConnectionState | null): string | null {
   if (connection === null || connection.phase !== 'polling') return null
+  if (connection.failure === 'session-owned-elsewhere') return SESSION_OWNED_DETAIL
   return connection.detail ?? CONNECTION_LOST_DETAIL
 }
 

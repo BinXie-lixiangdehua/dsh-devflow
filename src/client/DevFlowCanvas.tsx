@@ -201,8 +201,17 @@ export function DevFlowCanvas(props: Props) {
   }
 
   if (state.phase === 'loading') return <main className={'devflow-canvas devflow-flow'} aria-busy="true"><p className={'devflow-notice'}>{t('loading')}</p></main>
+  /*
+   * One refusal is named instead of "unavailable… refresh": another dsh process
+   * holds this session's write lease, so no amount of refreshing from this side
+   * can produce a snapshot. Retry stays — it is the user's way back in once that
+   * host lets go — but the sentence no longer claims the state is merely
+   * temporarily unreadable.
+   */
+  const refused = (state.phase === 'error' && state.failure === 'session-owned-elsewhere')
+    || connection?.failure === 'session-owned-elsewhere'
   if (snapshot === null || model === null) {
-    return <main className={'devflow-canvas devflow-flow'}><div className={'devflow-notice'}><p>{t('unavailable')}</p><button type="button" onClick={() => { void refresh() }}>{t('retry')}</button></div></main>
+    return <main className={'devflow-canvas devflow-flow'}><div className={'devflow-notice'} data-devflow-failure={refused ? 'session-owned-elsewhere' : 'unavailable'}><p>{refused ? t('sessionOwnedElsewhere') : t('unavailable')}</p><button type="button" onClick={() => { void refresh() }}>{t('retry')}</button></div></main>
   }
 
   /*
@@ -276,7 +285,10 @@ export function DevFlowCanvas(props: Props) {
           </>}
       </div>
     )}
-    {state.phase === 'error' && <div className={'devflow-error-notice'} role="alert" data-error-code={state.error.code}><span>{state.error.code === 'scope-unavailable'
+    {state.phase === 'error' && <div className={'devflow-error-notice'} role="alert" data-error-code={state.error.code} data-devflow-failure={state.failure}><span>{state.failure === 'session-owned-elsewhere'
+      /* 会话写租约在另一个 dsh 进程手里：这一侧刷新多少次都读不到，说明原因而不是让用户重试。 */
+      ? t('sessionOwnedElsewhere')
+      : state.error.code === 'scope-unavailable'
       /* 隔离拒绝：本会话没有工作区，所以这里既不显示共享库，也不宣称"最近一次成功数据"。 */
       ? t('scopeUnavailable')
       : `${t('unavailable')} 显示最近一次成功的数据。`}</span><button type="button" onClick={() => { void refresh() }}>{t('retry')}</button></div>}

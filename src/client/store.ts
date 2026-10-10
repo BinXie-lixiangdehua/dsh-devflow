@@ -34,22 +34,84 @@ export interface DevFlowConnectionState {
   readonly detail: string | null
   /** Consecutive failed opens; resets once a frame arrives. */
   readonly attempts: number
+  /**
+   * The refusal that stopped the channel, when a retry cannot clear it; null
+   * while the channel is healthy or merely broken.
+   *
+   * Only `session-owned-elsewhere` is ever set here. A broken carrier keeps
+   * {@link CONNECTION_LOST_DETAIL} and its retry ladder — that is a transport
+   * fact and re-opening *is* the recovery. A refusal is a session-ownership
+   * fact, so it is named instead of counted.
+   */
+  readonly failure: DevFlowRemoteFailure | null
 }
 
 export const INITIAL_CONNECTION_STATE: DevFlowConnectionState = {
-  phase: 'connecting', sequence: null, revision: null, detail: null, attempts: 0,
+  phase: 'connecting', sequence: null, revision: null, detail: null, attempts: 0, failure: null,
 }
 
 /** Fixed fallback wording; never carries a raw transport error. */
 export const CONNECTION_LOST_DETAIL = '实时连接已断开，正在使用轮询'
+/**
+ * The one refusal the panel can name: another process holds this session's
+ * write lease, so the gateway cannot resolve the agent this bridge addresses.
+ * Measured on the dsh desktop 2026-10-10: four identical `session/writer-held`
+ * answers, which is what makes the automatic retry below futile.
+ */
+export const SESSION_OWNED_DETAIL = '该会话正被另一个 dsh 实例占用，本侧读不到 DevFlow 状态'
 /** How long a live channel may stay silent before the panel treats it as lost. */
 export const CHANNEL_SILENCE_MS = 45_000
+/** First backoff step of the broken-carrier retry ladder. */
+const RETRY_DELAY_START_MS = 1_000
+
+/**
+ * Why a DevFlow read or subscription failed, as far as the panel may say.
+ *
+ * `session-owned-elsewhere` means the gateway refused an agent-scoped call
+ * because another dsh process holds the session's write lease
+ * (`packages/api/session-controller/src/agent.ts` resolves an agent by
+ * resuming it, and `session-persistence-jsonl` maps lease contention to
+ * `SessionAlreadyOwnedError`). Nothing on this side can clear that, so the
+ * panel names it and stops re-opening the stream.
+ */
+export type DevFlowRemoteFailure = 'session-owned-elsewhere' | 'unavailable'
+
+/** The gateway's stable code for "another process owns this session". */
+const SESSION_WRITER_HELD = 'session/writer-held'
+/** The same refusal as text, for a wrapper that kept only the message. */
+const SESSION_WRITER_HELD_TEXT = 'is already owned by an active write handle'
+
+/**
+ * Classify a failure the carrier reported.
+ *
+ * The stream client rethrows the gateway's own `RemoteError` unchanged
+ * (`packages/api/gateway/src/client/stream-client.ts:131`), so `code` is the
+ * primary shape. The walk over `cause` / `rpcError` / `error` and the message
+ * test are defensive on purpose: a wrapper that preserved only the text must
+ * still classify, and a refusal misread as a transport fault is exactly what
+ * re-armed the futile retry this round removes.
+ *
+ * @param error - whatever the rejected call or stream threw.
+ * @returns the classified failure; anything unrecognized is `unavailable`.
+ */
+export function classifyRemoteFailure(error: unknown): DevFlowRemoteFailure {
+  const seen = new Set<unknown>()
+  let current: unknown = error
+  for (let depth = 0; depth < 4 && current !== null && current !== undefined && !seen.has(current); depth += 1) {
+    seen.add(current)
+    const candidate = current as { code?: unknown; message?: unknown; cause?: unknown; rpcError?: unknown; error?: unknown }
+    if (candidate.code === SESSION_WRITER_HELD) return 'session-owned-elsewhere'
+    if (typeof candidate.message === 'string' && candidate.message.includes(SESSION_WRITER_HELD_TEXT)) return 'session-owned-elsewhere'
+    current = candidate.cause ?? candidate.rpcError ?? candidate.error
+  }
+  return 'unavailable'
+}
 
 export type DevFlowClientLoadState =
   | { readonly phase: 'loading'; readonly snapshot: null; readonly error: null }
   | { readonly phase: 'ready'; readonly snapshot: DevFlowClientSnapshot; readonly error: null }
   | { readonly phase: 'refreshing'; readonly snapshot: DevFlowClientSnapshot; readonly error: null }
-  | { readonly phase: 'error'; readonly snapshot: DevFlowClientSnapshot | null; readonly error: DevFlowClientStateError }
+  | { readonly phase: 'error'; readonly snapshot: DevFlowClientSnapshot | null; readonly error: DevFlowClientStateError; readonly failure: DevFlowRemoteFailure }
 
 export type DevFlowClientAuditLoadState =
   | { readonly phase: 'idle'; readonly filter: DevFlowClientAuditFilter | null; readonly page: null; readonly error: null }
@@ -200,18 +262,18 @@ export class DevFlowSnapshotController {
     if (remote === undefined) { this.fail(); return Promise.resolve() }
     if (this.state.snapshot === null) this.set(INITIAL_STATE)
     else this.set({ phase: 'refreshing', snapshot: this.state.snapshot, error: null })
-    const request = remote[method]().then(result => this.apply(result)).catch(() => this.fail()).finally(() => { this.pending = undefined })
+    const request = remote[method]().then(result => this.apply(result)).catch((error: unknown) => this.fail(classifyRemoteFailure(error))).finally(() => { this.pending = undefined })
     this.pending = request
     return request
   }
   private apply(result: Awaited<ReturnType<DevFlowRemote['snapshot']>>): void {
     if (!result.ok) return this.fail()
     const response = parseDevFlowResponse(result.value)
-    if (response.kind === 'error') return this.set({ phase: 'error', snapshot: this.state.snapshot, error: response.error })
+    if (response.kind === 'error') return this.set({ phase: 'error', snapshot: this.state.snapshot, error: response.error, failure: 'unavailable' })
     if (response.snapshot.session.id !== this.sessionId) return this.fail()
     this.set({ phase: 'ready', snapshot: response.snapshot, error: null })
   }
-  private fail(): void { this.set({ phase: 'error', snapshot: this.state.snapshot, error: { code: 'state-unavailable', message: 'DevFlow state is unavailable. Refresh to try again.' } }) }
+  private fail(failure: DevFlowRemoteFailure = 'unavailable'): void { this.set({ phase: 'error', snapshot: this.state.snapshot, error: { code: 'state-unavailable', message: 'DevFlow state is unavailable. Refresh to try again.' }, failure }) }
   private set(next: DevFlowClientLoadState): void { if (this.state === next) return; this.state = next; for (const listener of this.listeners) listener() }
 }
 
@@ -254,7 +316,7 @@ export class DevFlowLiveController {
   private watermark = -1
   private retry: ReturnType<typeof setTimeout> | null = null
   private silence: ReturnType<typeof setTimeout> | null = null
-  private retryDelayMs = 1_000
+  private retryDelayMs = RETRY_DELAY_START_MS
   /** Injectable so tests can drive the retry ladder without real timers. */
   private readonly schedule: (callback: () => void, ms: number) => ReturnType<typeof setTimeout>
   private readonly clear: (handle: ReturnType<typeof setTimeout>) => void
@@ -295,7 +357,7 @@ export class DevFlowLiveController {
 
   setRemote(remote: DevFlowRemote | undefined): void {
     this.remote = remote
-    if (remote === undefined) { this.stop(); this.setConnection({ ...this.connection, phase: 'polling', detail: CONNECTION_LOST_DETAIL }) }
+    if (remote === undefined) { this.stop(); this.setConnection({ ...this.connection, phase: 'polling', detail: CONNECTION_LOST_DETAIL, failure: null }) }
     // The Remote mounts after this controller may already exist, so "not running"
     // (rather than "not stopped") decides whether to open the channel here.
     else if (!this.active) this.start()
@@ -314,6 +376,19 @@ export class DevFlowLiveController {
     this.controller?.abort()
     this.controller = null
     this.clearTimers()
+  }
+
+  /**
+   * Re-open the channel on an explicit user action.
+   *
+   * A refusal ends the automatic ladder ({@link stall}), but the condition it
+   * reports belongs to another process: that host may have let go in the
+   * meantime, so a manual retry stays available. It is the only retry this
+   * failure gets beyond its first open.
+   */
+  retryNow(): void {
+    this.retryDelayMs = RETRY_DELAY_START_MS
+    if (!this.stopped) this.start()
   }
 
   dispose(): void {
@@ -362,8 +437,14 @@ export class DevFlowLiveController {
         this.noteFrame(event.revision, event.sequence)
       }
       if (!this.stopped) this.degrade('实时连接已断开，正在使用轮询')
-    } catch {
-      if (!this.stopped) this.degrade(CONNECTION_LOST_DETAIL)
+    } catch (error: unknown) {
+      // A refusal is not a broken carrier: name it once and stop. The next open
+      // would ask the same question of the same host and get the same answer.
+      if (!this.stopped) {
+        const failure = classifyRemoteFailure(error)
+        if (failure === 'session-owned-elsewhere') this.stall(failure)
+        else this.degrade(CONNECTION_LOST_DETAIL)
+      }
     } finally {
       this.active = false
       if (this.controller === abort) this.controller = null
@@ -371,13 +452,34 @@ export class DevFlowLiveController {
   }
 
   private noteFrame(revision: number | null, sequence: number | null): void {
-    this.retryDelayMs = 1_000
+    this.retryDelayMs = RETRY_DELAY_START_MS
     this.setConnection({
       phase: 'live',
       sequence: sequence ?? this.connection.sequence,
       revision: revision ?? this.connection.revision,
       detail: null,
       attempts: 0,
+      failure: null,
+    })
+  }
+
+  /**
+   * Report a refusal a retry cannot clear, and end the loop instead of counting.
+   *
+   * Measured on the dsh desktop 2026-10-10: four consecutive opens answered the
+   * identical `session/writer-held`, so the automatic ladder produced nothing
+   * but traffic. The panel now states the cause once and waits for a user
+   * action ({@link retryNow}) or a remount.
+   */
+  private stall(failure: DevFlowRemoteFailure): void {
+    this.clearTimers()
+    this.retryDelayMs = RETRY_DELAY_START_MS
+    this.setConnection({
+      ...this.connection,
+      phase: 'polling',
+      detail: SESSION_OWNED_DETAIL,
+      attempts: this.connection.attempts + 1,
+      failure,
     })
   }
 
@@ -385,7 +487,7 @@ export class DevFlowLiveController {
   private degrade(detail: string): void {
     this.clearTimers()
     const attempts = this.connection.attempts + 1
-    this.setConnection({ ...this.connection, phase: 'polling', detail, attempts })
+    this.setConnection({ ...this.connection, phase: 'polling', detail, attempts, failure: null })
     const delay = this.retryDelayMs
     this.retryDelayMs = Math.min(this.retryDelayMs * 2, 15_000)
     this.retry = this.schedule(() => {
@@ -419,4 +521,5 @@ export class DevFlowLiveController {
 function sameConnection(left: DevFlowConnectionState, right: DevFlowConnectionState): boolean {
   return left.phase === right.phase && left.sequence === right.sequence
     && left.revision === right.revision && left.detail === right.detail && left.attempts === right.attempts
+    && left.failure === right.failure
 }
